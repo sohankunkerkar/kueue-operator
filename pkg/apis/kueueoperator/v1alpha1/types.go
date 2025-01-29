@@ -14,7 +14,9 @@ import (
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 type Kueue struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata for kueue
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
@@ -22,28 +24,30 @@ type Kueue struct {
 	Spec KueueOperandSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
 	// +optional
-	Status KueueStatus `json:"status"`
+	Status KueueStatus `json:"status,omitempty"`
 }
 
 type KueueOperandSpec struct {
 	operatorv1.OperatorSpec `json:",inline"`
-	// The config that is persisted to a config map
+	// config that is persisted to a config map
+	// +required
 	Config KueueConfiguration `json:"config"`
-	// Image
+	// image for the kueue operand
+	// +required
 	Image string `json:"image"`
 }
 
 type KueueConfiguration struct {
-	// WaitForPodsReady configures gang admission
+	// waitForPodsReady configures gang admission
 	// +optional
 	WaitForPodsReady *configapi.WaitForPodsReady `json:"waitForPodsReady,omitempty"`
-	// Integrations are the types of integrations Kueue will manager
-	// Required
+	// integrations are the types of integrations Kueue will manager
+	// +required
 	Integrations configapi.Integrations `json:"integrations"`
-	// Feature gates are advanced features for Kueue
+	// featureGates are advanced features for Kueue
 	// +optional
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
-	// Resources provides additional configuration options for handling the resources.
+	// resources provides additional configuration options for handling the resources.
 	// Supports https://github.com/kubernetes-sigs/kueue/blob/release-0.10/keps/2937-resource-transformer/README.md
 	// +optional
 	Resources *configapi.Resources `json:"resources,omitempty"`
@@ -59,6 +63,10 @@ type KueueStatus struct {
 // KueueList contains a list of Kueue
 type KueueList struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata for the list
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Kueue `json:"items"`
+	// items is a slice of kueue
+	// +required
+	Items []Kueue `json:"items"`
 }
