@@ -41,20 +41,23 @@ spec:
             spec:
               description: spec holds user settable values for configuration
               type: object
+              required:
+                - config
+                - image
               properties:
                 config:
-                  description: The config that is persisted to a config map
+                  description: config that is persisted to a config map
                   type: object
+                  required:
+                    - integrations
                   properties:
                     featureGates:
-                      description: Feature gates are advanced features for Kueue
+                      description: featureGates are advanced features for Kueue
                       type: object
                       additionalProperties:
                         type: boolean
                     integrations:
-                      description: |-
-                        Integrations are the types of integrations Kueue will manager
-                        Required
+                      description: integrations are the types of integrations Kueue will manager
                       type: object
                       properties:
                         externalFrameworks:
@@ -192,7 +195,7 @@ spec:
                               x-kubernetes-map-type: atomic
                     resources:
                       description: |-
-                        Resources provides additional configuration options for handling the resources.
+                        resources provides additional configuration options for handling the resources.
                         Supports https://github.com/kubernetes-sigs/kueue/blob/release-0.10/keps/2937-resource-transformer/README.md
                       type: object
                       properties:
@@ -231,7 +234,7 @@ spec:
                                   Defaults to Retain
                                 type: string
                     waitForPodsReady:
-                      description: WaitForPodsReady configures gang admission
+                      description: waitForPodsReady configures gang admission
                       type: object
                       properties:
                         blockAdmission:
@@ -297,7 +300,7 @@ spec:
                             Defaults to 5min.
                           type: string
                 image:
-                  description: Image
+                  description: image for the kueue operand
                   type: string
                 logLevel:
                   description: |-

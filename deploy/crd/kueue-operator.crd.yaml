@@ -40,17 +40,16 @@ spec:
             description: spec holds user settable values for configuration
             properties:
               config:
-                description: The config that is persisted to a config map
+                description: config that is persisted to a config map
                 properties:
                   featureGates:
                     additionalProperties:
                       type: boolean
-                    description: Feature gates are advanced features for Kueue
+                    description: featureGates are advanced features for Kueue
                     type: object
                   integrations:
-                    description: |-
-                      Integrations are the types of integrations Kueue will manager
-                      Required
+                    description: integrations are the types of integrations Kueue
+                      will manager
                     properties:
                       externalFrameworks:
                         description: |-
@@ -195,7 +194,7 @@ spec:
                     type: object
                   resources:
                     description: |-
-                      Resources provides additional configuration options for handling the resources.
+                      resources provides additional configuration options for handling the resources.
                       Supports https://github.com/kubernetes-sigs/kueue/blob/release-0.10/keps/2937-resource-transformer/README.md
                     properties:
                       excludeResourcePrefixes:
@@ -235,7 +234,7 @@ spec:
                         type: array
                     type: object
                   waitForPodsReady:
-                    description: WaitForPodsReady configures gang admission
+                    description: waitForPodsReady configures gang admission
                     properties:
                       blockAdmission:
                         description: |-
@@ -301,9 +300,11 @@ spec:
                           Defaults to 5min.
                         type: string
                     type: object
+                required:
+                - integrations
                 type: object
               image:
-                description: Image
+                description: image for the kueue operand
                 type: string
               logLevel:
                 default: Normal
@@ -357,6 +358,9 @@ spec:
                 nullable: true
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
+            required:
+            - config
+            - image
             type: object
           status:
             description: status holds observed values from the cluster. They may not
