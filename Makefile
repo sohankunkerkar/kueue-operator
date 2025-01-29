@@ -44,9 +44,8 @@ test-e2e: test-unit
 regen-crd:
 	go build -o $(LOCALBIN)/controller-gen ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen
 	$(LOCALBIN)/controller-gen crd paths=./pkg/apis/kueueoperator/v1alpha1/... schemapatch:manifests=./manifests output:crd:dir=./manifests
-	mv manifests/operator.openshift.io_kueues.yaml manifests/kueue-operator.crd.yaml
-	rm deploy/crd/kueue-operator.crd.yaml
-	cp manifests/kueue-operator.crd.yaml deploy/crd/kueue-operator.crd.yaml
+	cp manifests/operator.openshift.io_kueues.yaml manifests/kueue-operator.crd.yaml
+	mv -f manifests/kueue-operator.crd.yaml deploy/crd/kueue-operator.crd.yaml
 
 .PHONY: generate
 generate: manifests code-gen generate-clients
