@@ -68,12 +68,12 @@ clean:
 .PHONY: clean
 
 .PHONY: lint
-lint: golangci-lint ## Run golangci-lint linter & yamllint
-	$(GOLANGCI_LINT) run --timeout 5m
+lint: golangci-lint ## Run golangci-lint linter 
+	$(GOLANGCI_LINT) run --timeout 30m
 
 .PHONY: lint-fix
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
-	$(GOLANGCI_LINT) run --fix
+	$(GOLANGCI_LINT) run --fix --timeout 30m
 
 ## Tool Binaries
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
