@@ -18,11 +18,6 @@ import (
 	"k8s.io/klog/v2"
 )
 
-const (
-	workQueueKey          = "key"
-	workQueueCMChangedKey = "CMkey"
-)
-
 type queueItem struct {
 	kind string
 	name string

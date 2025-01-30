@@ -56,7 +56,7 @@ type TargetConfigReconciler struct {
 	osrClient                  openshiftrouteclientset.Interface
 	dynamicClient              dynamic.Interface
 	eventRecorder              events.Recorder
-	queue                      workqueue.RateLimitingInterface
+	queue                      workqueue.TypedRateLimitingInterface[queueItem]
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces
 	crdClient                  apiextv1.ApiextensionsV1Interface
 	operatorNamespace          string
@@ -82,7 +82,7 @@ func NewTargetConfigReconciler(
 		osrClient:                  osrClient,
 		dynamicClient:              dynamicClient,
 		eventRecorder:              eventRecorder,
-		queue:                      workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TargetConfigReconciler"),
+		queue:                      workqueue.NewTypedRateLimitingQueueWithConfig(workqueue.DefaultTypedControllerRateLimiter[queueItem](), workqueue.TypedRateLimitingQueueConfig[queueItem]{Name: "TargetConfigReconciler"}),
 		kubeInformersForNamespaces: kubeInformersForNamespaces,
 		crdClient:                  crdClient,
 		operatorNamespace:          namespace.GetNamespace(),
@@ -119,7 +119,7 @@ func NewTargetConfigReconciler(
 	return c, nil
 }
 
-func (c TargetConfigReconciler) sync(item queueItem) error {
+func (c TargetConfigReconciler) sync() error {
 	kueue, err := c.operatorClient.Kueues(c.operatorNamespace).Get(c.ctx, operatorclient.OperatorConfigName, metav1.GetOptions{})
 	if err != nil {
 		klog.ErrorS(err, "unable to get operator configuration", "namespace", c.operatorNamespace, "kueue", operatorclient.OperatorConfigName)
@@ -684,8 +684,7 @@ func (c *TargetConfigReconciler) processNextWorkItem() bool {
 		return false
 	}
 	defer c.queue.Done(dsKey)
-	item := dsKey.(queueItem)
-	err := c.sync(item)
+	err := c.sync()
 	if err == nil {
 		c.queue.Forget(dsKey)
 		return true
