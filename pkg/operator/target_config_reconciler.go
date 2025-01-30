@@ -489,8 +489,8 @@ func (c *TargetConfigReconciler) manageClusterRoles(kueue *kueuev1alpha1.Kueue) 
 	returnMap := make(map[string]string, 34)
 	// This is hardcoded due to the amount of clusterroles that kueue has.
 	for i := 0; i < 35; i++ {
-		assetPath := fmt.Sprintf("assets/kueue-operator/clusterrole_%d.yml", i)
-		clusterRoleName := fmt.Sprintf("clusterrole/clusterrole_%d.yml", i)
+		assetPath := fmt.Sprintf("assets/kueue-operator/clusterrole_%d.yaml", i)
+		clusterRoleName := fmt.Sprintf("clusterrole/clusterrole_%d.yaml", i)
 		required := resourceread.ReadClusterRoleV1OrDie(bindata.MustAsset(assetPath))
 		if required.AggregationRule != nil {
 			continue
@@ -588,8 +588,8 @@ func (c *TargetConfigReconciler) manageCustomResources(kueue *kueuev1alpha1.Kueu
 	returnMap := make(map[string]string, 11)
 	// This is hardcoded due to the amount of custom resources that kueue has.
 	for i := 0; i < 11; i++ {
-		assetPath := fmt.Sprintf("assets/kueue-operator/crd_%d.yml", i)
-		crdName := fmt.Sprintf("crd/crd_%d.yml", i)
+		assetPath := fmt.Sprintf("assets/kueue-operator/crd_%d.yaml", i)
+		crdName := fmt.Sprintf("crd/crd_%d.yaml", i)
 		required := resourceread.ReadCustomResourceDefinitionV1OrDie(bindata.MustAsset(assetPath))
 		ownerReference := metav1.OwnerReference{
 			APIVersion: "operator.openshift.io/v1alpha1",
