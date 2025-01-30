@@ -196,7 +196,7 @@ func (c TargetConfigReconciler) sync() error {
 		specAnnotations["rolebindings/leader-election"] = resourceVersion
 	}
 
-	if service, _, err := c.manageService(kueue, "assets/kueue-operator/metrics-service.yaml"); err != nil {
+	if service, _, err := c.manageService(kueue, "assets/kueue-operator/controller-manager-metrics-service.yaml"); err != nil {
 		klog.Error("unable to manage metrics service")
 		return err
 	} else {
@@ -207,7 +207,7 @@ func (c TargetConfigReconciler) sync() error {
 		specAnnotations["service/metrics-service"] = resourceVersion
 	}
 
-	if service, _, err := c.manageService(kueue, "assets/kueue-operator/visibility-service.yaml"); err != nil {
+	if service, _, err := c.manageService(kueue, "assets/kueue-operator/visibility-server.yaml"); err != nil {
 		klog.Error("unable to manage visbility service")
 		return err
 	} else {
@@ -260,7 +260,7 @@ func (c TargetConfigReconciler) sync() error {
 		specAnnotations["clusterrolebinding/openshift-roles"] = resourceVersion
 	}
 
-	if service, _, err := c.manageClusterRoleBindings(kueue, "assets/kueue-operator/clusterrolebinding-kube-proxy.yaml"); err != nil {
+	if service, _, err := c.manageClusterRoleBindings(kueue, "assets/kueue-operator/clusterrolebinding-proxy.yaml"); err != nil {
 		klog.Error("unable to manage kube proxy cluster roles")
 		return err
 	} else {
@@ -271,7 +271,7 @@ func (c TargetConfigReconciler) sync() error {
 		specAnnotations["clusterrolebinding/kube-proxy"] = resourceVersion
 	}
 
-	if service, _, err := c.manageClusterRoleBindings(kueue, "assets/kueue-operator/clusterrolebinding-kueue-manager-role.yaml"); err != nil {
+	if service, _, err := c.manageClusterRoleBindings(kueue, "assets/kueue-operator/clusterrolebinding-manager.yaml"); err != nil {
 		klog.Error("unable to manage cluster role kueue-manager")
 		return err
 	} else {
