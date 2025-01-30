@@ -196,7 +196,7 @@ func (c TargetConfigReconciler) sync() error {
 		specAnnotations["rolebindings/leader-election"] = resourceVersion
 	}
 
-	if service, _, err := c.manageService(kueue, "assets/kueue-operator/metrics-service.yaml"); err != nil {
+	if service, _, err := c.manageService(kueue, "assets/kueue-operator/controller-manager-metrics-service.yaml"); err != nil {
 		klog.Error("unable to manage metrics service")
 		return err
 	} else {
@@ -207,7 +207,7 @@ func (c TargetConfigReconciler) sync() error {
 		specAnnotations["service/metrics-service"] = resourceVersion
 	}
 
-	if service, _, err := c.manageService(kueue, "assets/kueue-operator/visibility-service.yaml"); err != nil {
+	if service, _, err := c.manageService(kueue, "assets/kueue-operator/visibility-server.yaml"); err != nil {
 		klog.Error("unable to manage visbility service")
 		return err
 	} else {
@@ -371,7 +371,7 @@ func (c *TargetConfigReconciler) manageSecret(kueue *kueuev1alpha1.Kueue) (*v1.S
 }
 
 func (c *TargetConfigReconciler) manageMutatingWebhook(kueue *kueuev1alpha1.Kueue) (*admissionregistrationv1.MutatingWebhookConfiguration, bool, error) {
-	required := resourceread.ReadMutatingWebhookConfigurationV1OrDie(bindata.MustAsset("assets/kueue-operator/mutatingwebhook.yaml"))
+	required := resourceread.ReadMutatingWebhookConfigurationV1OrDie(bindata.MustAsset("assets/kueue-operator/mutating-webhook.yaml"))
 	ownerReference := metav1.OwnerReference{
 		APIVersion: "operator.openshift.io/v1alpha1",
 		Kind:       "Kueue",
@@ -390,7 +390,7 @@ func (c *TargetConfigReconciler) manageMutatingWebhook(kueue *kueuev1alpha1.Kueu
 }
 
 func (c *TargetConfigReconciler) manageValidatingWebhook(kueue *kueuev1alpha1.Kueue) (*admissionregistrationv1.ValidatingWebhookConfiguration, bool, error) {
-	required := resourceread.ReadValidatingWebhookConfigurationV1OrDie(bindata.MustAsset("assets/kueue-operator/validatingwebhook.yaml"))
+	required := resourceread.ReadValidatingWebhookConfigurationV1OrDie(bindata.MustAsset("assets/kueue-operator/validating-webhook.yaml"))
 	ownerReference := metav1.OwnerReference{
 		APIVersion: "operator.openshift.io/v1alpha1",
 		Kind:       "Kueue",
