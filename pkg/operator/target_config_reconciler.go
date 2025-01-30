@@ -3,7 +3,9 @@ package operator
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -486,36 +488,44 @@ func (c *TargetConfigReconciler) manageService(kueue *kueuev1alpha1.Kueue, asset
 }
 
 func (c *TargetConfigReconciler) manageClusterRoles(kueue *kueuev1alpha1.Kueue) (map[string]string, error) {
-	returnMap := make(map[string]string, 34)
-	// This is hardcoded due to the amount of clusterroles that kueue has.
-	for i := 0; i < 35; i++ {
-		assetPath := fmt.Sprintf("assets/kueue-operator/clusterrole_%d.yml", i)
-		clusterRoleName := fmt.Sprintf("clusterrole/clusterrole_%d.yml", i)
-		required := resourceread.ReadClusterRoleV1OrDie(bindata.MustAsset(assetPath))
-		if required.AggregationRule != nil {
-			continue
-		}
-		ownerReference := metav1.OwnerReference{
-			APIVersion: "operator.openshift.io/v1alpha1",
-			Kind:       "Kueue",
-			Name:       kueue.Name,
-			UID:        kueue.UID,
-		}
-		required.OwnerReferences = []metav1.OwnerReference{
-			ownerReference,
-		}
-		controller.EnsureOwnerRef(required, ownerReference)
+	returnMap := make(map[string]string)
+	clusterRoleDir := "assets/kueue-operator/clusterroles/"
 
-		clusterRole, _, err := resourceapply.ApplyClusterRole(c.ctx, c.kubeClient.RbacV1(), c.eventRecorder, required)
-		if err != nil {
-			return nil, err
-		}
+	files, err := os.ReadDir(clusterRoleDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read cluster role directory: %w", err)
+	}
 
-		resourceVersion := "0"
-		if clusterRole != nil { // SyncConfigMap can return nil
-			resourceVersion = clusterRole.ObjectMeta.ResourceVersion
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), ".yaml") {
+			assetPath := fmt.Sprintf(clusterRoleDir, file.Name())
+			clusterRoleName := fmt.Sprintf("clusterroles/%s", file.Name())
+			required := resourceread.ReadClusterRoleV1OrDie(bindata.MustAsset(assetPath))
+			if required.AggregationRule != nil {
+				continue
+			}
+			ownerReference := metav1.OwnerReference{
+				APIVersion: "operator.openshift.io/v1alpha1",
+				Kind:       "Kueue",
+				Name:       kueue.Name,
+				UID:        kueue.UID,
+			}
+			required.OwnerReferences = []metav1.OwnerReference{
+				ownerReference,
+			}
+			controller.EnsureOwnerRef(required, ownerReference)
+
+			clusterRole, _, err := resourceapply.ApplyClusterRole(c.ctx, c.kubeClient.RbacV1(), c.eventRecorder, required)
+			if err != nil {
+				return nil, err
+			}
+
+			resourceVersion := "0"
+			if clusterRole != nil { // SyncConfigMap can return nil
+				resourceVersion = clusterRole.ObjectMeta.ResourceVersion
+			}
+			returnMap[clusterRoleName] = resourceVersion
 		}
-		returnMap[clusterRoleName] = resourceVersion
 	}
 	return returnMap, nil
 }
@@ -586,32 +596,40 @@ func (c *TargetConfigReconciler) manageOpenshiftClusterRolesForKueue(kueue *kueu
 
 func (c *TargetConfigReconciler) manageCustomResources(kueue *kueuev1alpha1.Kueue) (map[string]string, error) {
 	returnMap := make(map[string]string, 11)
-	// This is hardcoded due to the amount of custom resources that kueue has.
-	for i := 0; i < 11; i++ {
-		assetPath := fmt.Sprintf("assets/kueue-operator/crd_%d.yml", i)
-		crdName := fmt.Sprintf("crd/crd_%d.yml", i)
-		required := resourceread.ReadCustomResourceDefinitionV1OrDie(bindata.MustAsset(assetPath))
-		ownerReference := metav1.OwnerReference{
-			APIVersion: "operator.openshift.io/v1alpha1",
-			Kind:       "Kueue",
-			Name:       kueue.Name,
-			UID:        kueue.UID,
-		}
-		required.OwnerReferences = []metav1.OwnerReference{
-			ownerReference,
-		}
-		controller.EnsureOwnerRef(required, ownerReference)
+	crdDir := "assets/kueue-operator/crds/"
 
-		crd, _, err := resourceapply.ApplyCustomResourceDefinitionV1(c.ctx, c.crdClient, c.eventRecorder, required)
-		if err != nil {
-			return nil, err
-		}
+	files, err := os.ReadDir(crdDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read crd directory: %w", err)
+	}
 
-		resourceVersion := "0"
-		if crd != nil { // SyncConfigMap can return nil
-			resourceVersion = crd.ObjectMeta.ResourceVersion
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), ".yaml") {
+			assetPath := fmt.Sprintf(crdDir, file.Name())
+			crdName := fmt.Sprintf("clusterroles/%s", file.Name())
+			required := resourceread.ReadCustomResourceDefinitionV1OrDie(bindata.MustAsset(assetPath))
+			ownerReference := metav1.OwnerReference{
+				APIVersion: "operator.openshift.io/v1alpha1",
+				Kind:       "Kueue",
+				Name:       kueue.Name,
+				UID:        kueue.UID,
+			}
+			required.OwnerReferences = []metav1.OwnerReference{
+				ownerReference,
+			}
+			controller.EnsureOwnerRef(required, ownerReference)
+
+			crd, _, err := resourceapply.ApplyCustomResourceDefinitionV1(c.ctx, c.crdClient, c.eventRecorder, required)
+			if err != nil {
+				return nil, err
+			}
+
+			resourceVersion := "0"
+			if crd != nil { // SyncConfigMap can return nil
+				resourceVersion = crd.ObjectMeta.ResourceVersion
+			}
+			returnMap[crdName] = resourceVersion
 		}
-		returnMap[crdName] = resourceVersion
 	}
 	return returnMap, nil
 }
