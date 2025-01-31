@@ -32,8 +32,11 @@ import (
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -56,11 +59,13 @@ type TargetConfigReconciler struct {
 	kubeClient                 kubernetes.Interface
 	osrClient                  openshiftrouteclientset.Interface
 	dynamicClient              dynamic.Interface
+	discoveryClient            discovery.DiscoveryInterface
 	eventRecorder              events.Recorder
 	queue                      workqueue.TypedRateLimitingInterface[queueItem]
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces
 	crdClient                  apiextv1.ApiextensionsV1Interface
 	operatorNamespace          string
+	resourceCache              resourceapply.ResourceCache
 }
 
 func NewTargetConfigReconciler(
@@ -72,6 +77,7 @@ func NewTargetConfigReconciler(
 	kubeClient kubernetes.Interface,
 	osrClient openshiftrouteclientset.Interface,
 	dynamicClient dynamic.Interface,
+	discoveryClient discovery.DiscoveryInterface,
 	crdClient apiextv1.ApiextensionsV1Interface,
 	eventRecorder events.Recorder,
 ) (*TargetConfigReconciler, error) {
@@ -82,11 +88,13 @@ func NewTargetConfigReconciler(
 		kubeClient:                 kubeClient,
 		osrClient:                  osrClient,
 		dynamicClient:              dynamicClient,
+		discoveryClient:            discoveryClient,
 		eventRecorder:              eventRecorder,
 		queue:                      workqueue.NewTypedRateLimitingQueueWithConfig(workqueue.DefaultTypedControllerRateLimiter[queueItem](), workqueue.TypedRateLimitingQueueConfig[queueItem]{Name: "TargetConfigReconciler"}),
 		kubeInformersForNamespaces: kubeInformersForNamespaces,
 		crdClient:                  crdClient,
 		operatorNamespace:          namespace.GetNamespace(),
+		resourceCache:              resourceapply.NewResourceCache(),
 	}
 
 	_, err := operatorClientInformer.Informer().AddEventHandler(c.eventHandler(queueItem{kind: "kueue"}))
@@ -121,6 +129,21 @@ func NewTargetConfigReconciler(
 }
 
 func (c TargetConfigReconciler) sync() error {
+
+	found, err := isResourceRegistered(c.discoveryClient, schema.GroupVersionKind{
+		Group:   "cert-manager.io",
+		Version: "v1",
+		Kind:    "Issuer",
+	})
+	if err != nil {
+		klog.Errorf("unable to check cert-manager is installed: %v", err)
+		return err
+	}
+	if !found {
+		klog.Errorf("please make sure that cert-manager is installed")
+		return fmt.Errorf("please make sure that cert-manager is installed on your cluster")
+	}
+
 	kueue, err := c.operatorClient.Kueues(c.operatorNamespace).Get(c.ctx, operatorclient.OperatorConfigName, metav1.GetOptions{})
 	if err != nil {
 		klog.ErrorS(err, "unable to get operator configuration", "namespace", c.operatorNamespace, "kueue", operatorclient.OperatorConfigName)
@@ -129,6 +152,18 @@ func (c TargetConfigReconciler) sync() error {
 
 	specAnnotations := map[string]string{
 		"kueueoperator.operator.openshift.io/cluster": strconv.FormatInt(kueue.Generation, 10),
+	}
+
+	_, _, err = c.manageIssuerCR(c.ctx, kueue)
+	if err != nil {
+		klog.Errorf("unable to manage issuer err: %v", err)
+		return err
+	}
+
+	_, _, err = c.manageCertificateWebhookCR(c.ctx, kueue)
+	if err != nil {
+		klog.Errorf("unable to manage webhook certificate err: %v", err)
+		return err
 	}
 
 	if cm, _, err := c.manageConfigMap(kueue); err != nil {
@@ -385,7 +420,7 @@ func (c *TargetConfigReconciler) manageMutatingWebhook(kueue *kueuev1alpha1.Kueu
 	for i := range required.Webhooks {
 		required.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
 	}
-	return resourceapply.ApplyMutatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, resourceapply.NewResourceCache())
+	return resourceapply.ApplyMutatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, c.resourceCache)
 }
 
 func (c *TargetConfigReconciler) manageValidatingWebhook(kueue *kueuev1alpha1.Kueue) (*admissionregistrationv1.ValidatingWebhookConfiguration, bool, error) {
@@ -404,7 +439,7 @@ func (c *TargetConfigReconciler) manageValidatingWebhook(kueue *kueuev1alpha1.Ku
 	for i := range required.Webhooks {
 		required.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
 	}
-	return resourceapply.ApplyValidatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, resourceapply.NewResourceCache())
+	return resourceapply.ApplyValidatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, c.resourceCache)
 }
 
 func (c *TargetConfigReconciler) manageRoleBindings(kueue *kueuev1alpha1.Kueue, assetPath string) (*rbacv1.RoleBinding, bool, error) {
@@ -707,6 +742,77 @@ func (c *TargetConfigReconciler) processNextWorkItem() bool {
 	return true
 }
 
+func (c *TargetConfigReconciler) manageIssuerCR(ctx context.Context, kueue *kueuev1alpha1.Kueue) (*unstructured.Unstructured, bool, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    "cert-manager.io",
+		Version:  "v1",
+		Resource: "issuers",
+	}
+
+	required := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "cert-manager.io/v1",
+			"kind":       "Issuer",
+			"metadata": map[string]interface{}{
+				"ownerReferences": []interface{}{
+					map[string]interface{}{
+						"apiVersion": "operator.openshift.io/v1alpha1",
+						"kind":       "Kueue",
+						"name":       kueue.Name,
+						"uid":        string(kueue.UID),
+					},
+				},
+				"name":      "selfsigned",
+				"namespace": c.operatorNamespace,
+			},
+			"spec": map[string]interface{}{
+				"selfSigned": map[string]interface{}{},
+			},
+		},
+	}
+
+	return resourceapply.ApplyUnstructuredResourceImproved(ctx, c.dynamicClient, c.eventRecorder, required, c.resourceCache, gvr, nil, nil)
+}
+
+func (c *TargetConfigReconciler) manageCertificateWebhookCR(ctx context.Context, kueue *kueuev1alpha1.Kueue) (*unstructured.Unstructured, bool, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    "cert-manager.io",
+		Version:  "v1",
+		Resource: "certificates",
+	}
+
+	kueueServiceName := fmt.Sprintf("kueue-webhook-service.%s.svc", c.operatorNamespace)
+	required := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "cert-manager.io/v1",
+			"kind":       "Certificate",
+			"metadata": map[string]interface{}{
+				"ownerReferences": []interface{}{
+					map[string]interface{}{
+						"apiVersion": "operator.openshift.io/v1alpha1",
+						"kind":       "Kueue",
+						"name":       kueue.Name,
+						"uid":        string(kueue.UID),
+					},
+				},
+				"name":      "webhook-cert",
+				"namespace": c.operatorNamespace,
+			},
+			"spec": map[string]interface{}{
+				"secretName": "webhook-server-cert",
+				"dnsNames": []interface{}{
+					kueueServiceName,
+				},
+				"issuerRef": map[string]interface{}{
+					"name": "selfsigned",
+				},
+			},
+		},
+	}
+
+	return resourceapply.ApplyUnstructuredResourceImproved(ctx, c.dynamicClient, c.eventRecorder, required, c.resourceCache, gvr, nil, nil)
+}
+
 // eventHandler queues the operator to check spec and status
 func (c *TargetConfigReconciler) eventHandler(item queueItem) cache.ResourceEventHandler {
 	return cache.ResourceEventHandlerFuncs{
@@ -714,4 +820,20 @@ func (c *TargetConfigReconciler) eventHandler(item queueItem) cache.ResourceEven
 		UpdateFunc: func(old, new interface{}) { c.queue.Add(item) },
 		DeleteFunc: func(obj interface{}) { c.queue.Add(item) },
 	}
+}
+
+func isResourceRegistered(discoveryClient discovery.DiscoveryInterface, gvk schema.GroupVersionKind) (bool, error) {
+	apiResourceLists, err := discoveryClient.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	for _, apiResource := range apiResourceLists.APIResources {
+		if apiResource.Kind == gvk.Kind {
+			return true, nil
+		}
+	}
+	return false, nil
 }

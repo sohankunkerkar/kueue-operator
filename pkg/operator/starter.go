@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/loglevel"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
@@ -24,6 +25,7 @@ type queueItem struct {
 }
 
 func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error {
+
 	kubeClient, err := kubernetes.NewForConfig(cc.ProtoKubeConfig)
 	if err != nil {
 		return err
@@ -38,6 +40,11 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		"",
 		namespace.GetNamespace(),
 	)
+
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(cc.KubeConfig)
+	if err != nil {
+		return err
+	}
 
 	operatorConfigClient, err := operatorconfigclient.NewForConfig(cc.KubeConfig)
 	if err != nil {
@@ -69,6 +76,7 @@ func RunOperator(ctx context.Context, cc *controllercmd.ControllerContext) error
 		kubeClient,
 		osrClient,
 		dynamicClient,
+		discoveryClient,
 		crdClient,
 		cc.EventRecorder,
 	)
