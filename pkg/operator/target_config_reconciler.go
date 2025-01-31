@@ -3,6 +3,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -196,7 +197,7 @@ func (c TargetConfigReconciler) sync() error {
 		specAnnotations["rolebindings/leader-election"] = resourceVersion
 	}
 
-	if service, _, err := c.manageService(kueue, "assets/kueue-operator/metrics-service.yaml"); err != nil {
+	if service, _, err := c.manageService(kueue, "assets/kueue-operator/controller-manager-metrics-service.yaml"); err != nil {
 		klog.Error("unable to manage metrics service")
 		return err
 	} else {
@@ -207,7 +208,7 @@ func (c TargetConfigReconciler) sync() error {
 		specAnnotations["service/metrics-service"] = resourceVersion
 	}
 
-	if service, _, err := c.manageService(kueue, "assets/kueue-operator/visibility-service.yaml"); err != nil {
+	if service, _, err := c.manageService(kueue, "assets/kueue-operator/visibility-server.yaml"); err != nil {
 		klog.Error("unable to manage visbility service")
 		return err
 	} else {
@@ -260,7 +261,7 @@ func (c TargetConfigReconciler) sync() error {
 		specAnnotations["clusterrolebinding/openshift-roles"] = resourceVersion
 	}
 
-	if service, _, err := c.manageClusterRoleBindings(kueue, "assets/kueue-operator/clusterrolebinding-kube-proxy.yaml"); err != nil {
+	if service, _, err := c.manageClusterRoleBindings(kueue, "assets/kueue-operator/clusterrolebinding-proxy.yaml"); err != nil {
 		klog.Error("unable to manage kube proxy cluster roles")
 		return err
 	} else {
@@ -271,7 +272,7 @@ func (c TargetConfigReconciler) sync() error {
 		specAnnotations["clusterrolebinding/kube-proxy"] = resourceVersion
 	}
 
-	if service, _, err := c.manageClusterRoleBindings(kueue, "assets/kueue-operator/clusterrolebinding-kueue-manager-role.yaml"); err != nil {
+	if service, _, err := c.manageClusterRoleBindings(kueue, "assets/kueue-operator/clusterrolebinding-manager.yaml"); err != nil {
 		klog.Error("unable to manage cluster role kueue-manager")
 		return err
 	} else {
@@ -486,11 +487,17 @@ func (c *TargetConfigReconciler) manageService(kueue *kueuev1alpha1.Kueue, asset
 }
 
 func (c *TargetConfigReconciler) manageClusterRoles(kueue *kueuev1alpha1.Kueue) (map[string]string, error) {
-	returnMap := make(map[string]string, 34)
-	// This is hardcoded due to the amount of clusterroles that kueue has.
-	for i := 0; i < 35; i++ {
-		assetPath := fmt.Sprintf("assets/kueue-operator/clusterrole_%d.yml", i)
-		clusterRoleName := fmt.Sprintf("clusterrole/clusterrole_%d.yml", i)
+	returnMap := make(map[string]string)
+	clusterRoleDir := "assets/kueue-operator/clusterroles"
+
+	files, err := bindata.AssetDir(clusterRoleDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read clusterroles directory: %w", err)
+	}
+
+	for _, file := range files {
+		assetPath := filepath.Join(clusterRoleDir, file)
+		clusterRoleName := fmt.Sprintf("clusterrole/%s", file)
 		required := resourceread.ReadClusterRoleV1OrDie(bindata.MustAsset(assetPath))
 		if required.AggregationRule != nil {
 			continue
@@ -585,11 +592,17 @@ func (c *TargetConfigReconciler) manageOpenshiftClusterRolesForKueue(kueue *kueu
 }
 
 func (c *TargetConfigReconciler) manageCustomResources(kueue *kueuev1alpha1.Kueue) (map[string]string, error) {
-	returnMap := make(map[string]string, 11)
-	// This is hardcoded due to the amount of custom resources that kueue has.
-	for i := 0; i < 11; i++ {
-		assetPath := fmt.Sprintf("assets/kueue-operator/crd_%d.yml", i)
-		crdName := fmt.Sprintf("crd/crd_%d.yml", i)
+	returnMap := make(map[string]string)
+	crdDir := "assets/kueue-operator/crds/"
+
+	files, err := bindata.AssetDir(crdDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read crd directory: %w", err)
+	}
+
+	for _, file := range files {
+		assetPath := filepath.Join(crdDir, file)
+		crdName := fmt.Sprintf("clusterroles/%s", file)
 		required := resourceread.ReadCustomResourceDefinitionV1OrDie(bindata.MustAsset(assetPath))
 		ownerReference := metav1.OwnerReference{
 			APIVersion: "operator.openshift.io/v1alpha1",

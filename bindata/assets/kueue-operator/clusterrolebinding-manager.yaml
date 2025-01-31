@@ -1,7 +1,7 @@
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: kueue-manager-role-binding
+  name: kueue-manager-rolebinding
 subjects:
   - kind: ServiceAccount
     name: kueue-controller-manager
