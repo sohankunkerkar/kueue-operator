@@ -48,6 +48,18 @@ on the Kueue release policy.
 1. Run `operator sdk run bundle --namespace OPERATOR_NAMESPACE ${BUNDLE_IMAGE}`
 to deploy operator to OPERATOR_NAMESPACE
 
+### Local Development
+
+1. make
+
+1. `oc apply -f deploy/`
+
+1. `oc apply -f deploy/crd`
+
+1. hack/run-locally.sh
+
+1. Optionally run `oc apply -f deploy/examples/job.yaml`
+
 ## Sample CR
 
 ```yaml
