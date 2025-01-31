@@ -293,7 +293,6 @@ func (c TargetConfigReconciler) sync() error {
 		resourcemerge.SetDeploymentGeneration(&status.Generations, deployment)
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}
@@ -334,7 +333,6 @@ func (c *TargetConfigReconciler) buildAndApplyConfigMap(oldCfgMap *v1.ConfigMap,
 	}
 	klog.InfoS("Configmap difference detected", "Namespace", c.operatorNamespace, "ConfigMap", KueueConfigMap)
 	return resourceapply.ApplyConfigMap(c.ctx, c.kubeClient.CoreV1(), c.eventRecorder, cfgMap)
-
 }
 
 func (c *TargetConfigReconciler) manageServiceAccount(kueue *kueuev1alpha1.Kueue) (*v1.ServiceAccount, bool, error) {
@@ -593,7 +591,7 @@ func (c *TargetConfigReconciler) manageOpenshiftClusterRolesForKueue(kueue *kueu
 
 func (c *TargetConfigReconciler) manageCustomResources(kueue *kueuev1alpha1.Kueue) (map[string]string, error) {
 	returnMap := make(map[string]string)
-	crdDir := "assets/kueue-operator/crds/"
+	crdDir := "assets/kueue-operator/crds"
 
 	files, err := bindata.AssetDir(crdDir)
 	if err != nil {
