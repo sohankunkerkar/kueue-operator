@@ -20,6 +20,8 @@ OPERATOR_IMAGE ?= mustchange
 BUNDLE_IMAGE ?= mustchange
 KUEUE_IMAGE ?= mustchange
 
+CONTAINER_TOOL ?= podman
+
 CODEGEN_OUTPUT_PACKAGE :=github.com/openshift/kueue-operator/pkg/generated
 CODEGEN_API_PACKAGE :=github.com/openshift/kueue-operator/pkg/apis
 CODEGEN_GROUPS_VERSION :=kueue:v1alpha1
@@ -83,20 +85,20 @@ undeploy-ocp:
 # Below targets require you to login to your registry
 .PHONY: podman-operator-build
 podman-operator-build:
-	podman build -f Dockerfile -t ${OPERATOR_IMAGE}
+	${CONTAINER_TOOL} build -f Dockerfile -t ${OPERATOR_IMAGE}
 
 .PHONY: podman-operator-push
 podman-operator-push:
-	podman push ${OPERATOR_IMAGE}
+	${CONTAINER_TOOL} push ${OPERATOR_IMAGE}
 
 # Below targets require you to login to your registry
 .PHONY: podman-bundle-build
 podman-bundle-build:
-	podman build -f bundle.Dockerfile -t ${BUNDLE_IMAGE}
+	${CONTAINER_TOOL} build -f bundle.Dockerfile -t ${BUNDLE_IMAGE}
 
 .PHONY: podman-bundle-push
 podman-bundle-push:
-	podman push ${BUNDLE_IMAGE}
+	${CONTAINER_TOOL} push ${BUNDLE_IMAGE}
 
 clean:
 	$(RM) ./kueue-operator
