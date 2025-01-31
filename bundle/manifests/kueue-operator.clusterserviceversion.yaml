@@ -23,6 +23,28 @@ metadata:
                 ]
               }
             },
+            "image": "$KUEUE_IMAGE"
+          }
+        },
+        {
+          "apiVersion": "operator.openshift.io/v1alpha1",
+          "kind": "Kueue",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "kueue-operator"
+            },
+            "name": "cluster",
+            "namespace": "openshift-kueue-operator"
+          },
+          "spec": {
+            "config": {
+              "integrations": {
+                "frameworks": [
+                  "batch/job"
+                ]
+              }
+            },
             "image": "registry.k8s.io/kueue/kueue:v0.10.0"
           }
         },
@@ -62,10 +84,10 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2025-01-22T14:02:31Z"
+    createdAt: "2025-01-31T17:54:42Z"
     operators.operatorframework.io/builder: operator-sdk-v1.37.0
-    operators.operatorframework.io/project_layout: unknown
-  name: kueue.v0.0.1
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+  name: kueue-operator.v0.0.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -74,8 +96,8 @@ spec:
     - kind: Kueue
       name: kueues.operator.openshift.io
       version: v1alpha1
-  description: Kueue description. TODO.
-  displayName: Kueue
+  description: Kueue Operator description. TODO.
+  displayName: Kueue Operator
   icon:
   - base64data: ""
     mediatype: ""
@@ -235,8 +257,8 @@ spec:
                 - name: OPERATOR_NAME
                   value: openshift-kueue-operator
                 - name: RELATED_IMAGE_OPERAND_IMAGE
-                  value: registry.k8s.io/kueue/kueue:v0.10.0
-                image: quay.io/kevin-oss/kueue-operator:jan22440
+                  value: $KUEUE_IMAGE
+                image: $OPERATOR_IMAGE
                 imagePullPolicy: Always
                 name: openshift-kueue-operator
                 ports:
@@ -271,10 +293,10 @@ spec:
   - supported: true
     type: AllNamespaces
   keywords:
-  - kueue
+  - kueue-operator
   links:
-  - name: Kueue
-    url: https://kueue.domain
+  - name: Kueue Operator
+    url: https://kueue-operator.domain
   maintainers:
   - email: your@email.com
     name: Maintainer Name
@@ -283,6 +305,6 @@ spec:
     name: Provider Name
     url: https://your.domain
   relatedImages:
-  - image: registry.k8s.io/kueue/kueue:v0.10.0
+  - image: $KUEUE_IMAGE
     name: operand-image
   version: 0.0.1

@@ -24,7 +24,7 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: [ "ALL" ]
-          image: quay.io/kevin-oss/kueue-operator:jan24-305
+          image: OPERATOR_IMAGE
           volumeMounts:
             - name: tmp
               mountPath: "/tmp"
@@ -44,7 +44,7 @@ spec:
             - name: OPERATOR_NAME
               value: "openshift-kueue-operator"
             - name: RELATED_IMAGE_OPERAND_IMAGE
-              value: registry.k8s.io/kueue/kueue:v0.10.0
+              value: KUEUE_IMAGE
       serviceAccountName: openshift-kueue-operator
       volumes:
         - name: tmp
