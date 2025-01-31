@@ -23,9 +23,9 @@ on the Kueue release policy.
 
 1. Set OPERATOR_IMAGE to point to your repostory ie export OPERATOR_IMAGE=quay.io/testrepo/kueue-operator:test
 
-1. Build operator image: `make podman-operator-build`
+1. Build operator image: `make operator-build`
 
-1. Push operator image to repository: `make podman-operator-push`
+1. Push operator image to repository: `make operator-push`
 
 1. Set $KUEUE_IMAGE to point to kueue operand image
 
@@ -39,13 +39,13 @@ on the Kueue release policy.
 
 1. Set BUNDLE_IMAGE to point to your repostory and a tag of choice
 
-1. Run `make bundle-build` to generate the bundle manifests
+1. Run `make bundle-generate` to generate the bundle manifests
 
-1. Run `make podman-bundle-build` to build the `bundle.Dockerfile`.
+1. Run `make bundle-build` to build the `bundle.Dockerfile`.
 
-1. Run `make podman-bundle-push` to push the bundle image to your repository.
+1. Run `make bundle-push` to push the bundle image to your repository.
 
-1. Run `operator sdk run bundle --namespace OPERATOR_NAMESPACE ${BUNDLE_IMAGE}` 
+1. Run `operator sdk run bundle --namespace OPERATOR_NAMESPACE ${BUNDLE_IMAGE}`
 to deploy operator to OPERATOR_NAMESPACE
 
 ## Sample CR
