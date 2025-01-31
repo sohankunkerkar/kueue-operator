@@ -8,7 +8,7 @@ metadata:
     control-plane: controller-manager
   name: kueue-metrics-reader
 rules:
-  - nonResourceURLs:
-      - /metrics
-    verbs:
-      - get
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get

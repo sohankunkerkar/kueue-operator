@@ -9,17 +9,17 @@ metadata:
     rbac.kueue.x-k8s.io/batch-admin: "true"
   name: kueue-clusterqueue-viewer-role
 rules:
-  - apiGroups:
-      - kueue.x-k8s.io
-    resources:
-      - clusterqueues
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - kueue.x-k8s.io
-    resources:
-      - clusterqueues/status
-    verbs:
-      - get
+- apiGroups:
+  - kueue.x-k8s.io
+  resources:
+  - clusterqueues
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kueue.x-k8s.io
+  resources:
+  - clusterqueues/status
+  verbs:
+  - get

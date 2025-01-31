@@ -9,9 +9,9 @@ metadata:
   namespace: openshift-kueue-operator
 spec:
   ports:
-    - name: https
-      port: 443
-      protocol: TCP
-      targetPort: 8082
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 8082
   selector:
     control-plane: controller-manager

@@ -10,11 +10,11 @@ metadata:
     rbac.kueue.x-k8s.io/batch-user: "true"
   name: kueue-pending-workloads-lq-viewer-role
 rules:
-  - apiGroups:
-      - visibility.kueue.x-k8s.io
-    resources:
-      - localqueues/pendingworkloads
-    verbs:
-      - get
-      - list
-      - watch
+- apiGroups:
+  - visibility.kueue.x-k8s.io
+  resources:
+  - localqueues/pendingworkloads
+  verbs:
+  - get
+  - list
+  - watch

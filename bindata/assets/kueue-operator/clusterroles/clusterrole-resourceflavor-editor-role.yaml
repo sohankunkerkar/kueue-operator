@@ -9,15 +9,15 @@ metadata:
     rbac.kueue.x-k8s.io/batch-admin: "true"
   name: kueue-resourceflavor-editor-role
 rules:
-  - apiGroups:
-      - kueue.x-k8s.io
-    resources:
-      - resourceflavors
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
+- apiGroups:
+  - kueue.x-k8s.io
+  resources:
+  - resourceflavors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

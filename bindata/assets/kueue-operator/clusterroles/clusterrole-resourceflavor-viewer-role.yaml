@@ -9,11 +9,11 @@ metadata:
     rbac.kueue.x-k8s.io/batch-admin: "true"
   name: kueue-resourceflavor-viewer-role
 rules:
-  - apiGroups:
-      - kueue.x-k8s.io
-    resources:
-      - resourceflavors
-    verbs:
-      - get
-      - list
-      - watch
+- apiGroups:
+  - kueue.x-k8s.io
+  resources:
+  - resourceflavors
+  verbs:
+  - get
+  - list
+  - watch

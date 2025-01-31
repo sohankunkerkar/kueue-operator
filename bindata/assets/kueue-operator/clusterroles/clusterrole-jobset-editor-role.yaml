@@ -10,21 +10,21 @@ metadata:
     rbac.kueue.x-k8s.io/batch-user: "true"
   name: kueue-jobset-editor-role
 rules:
-  - apiGroups:
-      - jobset.x-k8s.io
-    resources:
-      - jobsets
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - jobset.x-k8s.io
-    resources:
-      - jobsets/status
-    verbs:
-      - get
+- apiGroups:
+  - jobset.x-k8s.io
+  resources:
+  - jobsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - jobset.x-k8s.io
+  resources:
+  - jobsets/status
+  verbs:
+  - get

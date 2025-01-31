@@ -9,11 +9,11 @@ metadata:
     rbac.kueue.x-k8s.io/batch-admin: "true"
   name: kueue-pending-workloads-cq-viewer-role
 rules:
-  - apiGroups:
-      - visibility.kueue.x-k8s.io
-    resources:
-      - clusterqueues/pendingworkloads
-    verbs:
-      - get
-      - list
-      - watch
+- apiGroups:
+  - visibility.kueue.x-k8s.io
+  resources:
+  - clusterqueues/pendingworkloads
+  verbs:
+  - get
+  - list
+  - watch
