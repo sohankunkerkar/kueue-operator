@@ -12,7 +12,13 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 GO_TEST_PACKAGES :=./pkg/...
 GO_BUILD_FLAGS :=-tags strictfipsruntime
 
-IMAGE_REGISTRY :=registry.svc.ci.openshift.org
+IMAGE_REGISTRY ?=registry.svc.ci.openshift.org
+
+OPERATOR_VERSION ?= 0.0.1
+# These are targets for pushing images
+OPERATOR_IMAGE ?= mustchange
+BUNDLE_IMAGE ?= mustchange
+KUEUE_IMAGE ?= mustchange
 
 CODEGEN_OUTPUT_PACKAGE :=github.com/openshift/kueue-operator/pkg/generated
 CODEGEN_API_PACKAGE :=github.com/openshift/kueue-operator/pkg/apis
@@ -45,7 +51,7 @@ regen-crd:
 	go build -o $(LOCALBIN)/controller-gen ./vendor/sigs.k8s.io/controller-tools/cmd/controller-gen
 	$(LOCALBIN)/controller-gen crd paths=./pkg/apis/kueueoperator/v1alpha1/... schemapatch:manifests=./manifests output:crd:dir=./manifests
 	cp manifests/operator.openshift.io_kueues.yaml manifests/kueue-operator.crd.yaml
-	mv -f manifests/kueue-operator.crd.yaml deploy/crd/kueue-operator.crd.yaml
+	cp manifests/kueue-operator.crd.yaml deploy/crd/kueue-operator.crd.yaml
 
 .PHONY: generate
 generate: manifests code-gen generate-clients
@@ -61,6 +67,36 @@ code-gen: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 .PHONY: generate-clients
 generate-clients:
 	GO=GO111MODULE=on GOTOOLCHAIN=go1.23.4 GOFLAGS=-mod=readonly hack/update-codegen.sh
+
+.PHONY: bundle-build
+bundle-build: operator-sdk regen-crd manifests
+	${OPERATOR_SDK} generate bundle --input-dir deploy/ --version ${OPERATOR_VERSION}
+
+.PHONY: deploy-ocp
+deploy-ocp: 
+	hack/deploy-ocp.sh ${OPERATOR_IMAGE} ${KUEUE_IMAGE}
+
+.PHONY: undeploy-ocp
+undeploy-ocp:
+	hack/undeploy-ocp.sh
+
+# Below targets require you to login to your registry
+.PHONY: podman-operator-build
+podman-operator-build:
+	podman build -f Dockerfile -t ${OPERATOR_IMAGE}
+
+.PHONY: podman-operator-push
+podman-operator-push:
+	podman push ${OPERATOR_IMAGE}
+
+# Below targets require you to login to your registry
+.PHONY: podman-bundle-build
+podman-bundle-build:
+	podman build -f bundle.Dockerfile -t ${BUNDLE_IMAGE}
+
+.PHONY: podman-bundle-push
+podman-bundle-push:
+	podman push ${BUNDLE_IMAGE}
 
 clean:
 	$(RM) ./kueue-operator
@@ -95,4 +131,20 @@ golangci-lint:
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell dirname $(GOLANGCI_LINT)) $(GOLANGCI_LINT_VERSION) ;\
 	}
 
+.PHONY: operator-sdk
+OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
+operator-sdk: ## Download operator-sdk locally if necessary.
+ifeq (,$(wildcard $(OPERATOR_SDK)))
+ifeq (, $(shell which operator-sdk 2>/dev/null))
+	@{ \
+	set -e ;\
+	mkdir -p $(dir $(OPERATOR_SDK)) ;\
+	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
+	curl -sSLo $(OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_$${OS}_$${ARCH} ;\
+	chmod +x $(OPERATOR_SDK) ;\
+	}
+else
+OPERATOR_SDK = $(shell which operator-sdk)
+endif
+endif
 

@@ -17,27 +17,31 @@ on the Kueue release policy.
 
 ## Deploy the Operator
 
-### Quick Development
+### Quick Development Operator
 
-1. Build and push the operator image to a registry:
+1. Login into podman and have a repository created.
 
-   ```sh
-   export QUAY_USER=${your_quay_user_id}
-   export IMAGE_TAG=${your_image_tag}
-   podman build -t quay.io/${QUAY_USER}/kueue-operator:${IMAGE_TAG} .
-   podman login quay.io -u ${QUAY_USER}
-   podman push quay.io/${QUAY_USER}/kueue-operator:${IMAGE_TAG}
-   ```
+1. Set OPERATOR_IMAGE to point to your repostory ie export OPERATOR_IMAGE=quay.io/testrepo/kueue-operator:test
 
-1. Update the image spec under `.spec.template.spec.containers[0].image` field in the `deploy/08_deployment.yaml` Deployment to point to the newly built image
+1. Build operator image: `make podman-operator-build`
 
-1. Update the `.spec.image` field under `deploy/09_kueue_crd.yaml` CR to point to a kueue image
+1. Push operator image to repository: `make podman-operator-push`
 
-1. Apply the manifests from `deploy` directory:
+1. Set $KUEUE_IMAGE to point to kueue operand image
 
-   ```sh
-   oc apply -f deploy/
-   ```
+1. Run `make deploy-ocp` to deploy the operator using the $OPERATOR_IMAGE and $KUEUE_IMAGE for operator and operand, respectively.
+
+### Operator Bundle Development
+
+1. Login into podman and have a repository created for the operator bundle.
+
+1. Set BUNDLE_IMAGE to point to your repostory and a tag of choice
+
+1. Run `make bundle-build` to generate the bundle manifests
+
+1. Run `make podman-bundle-build` to build the `bundle.Dockerfile`.
+
+1. Run `make podman-bundle-push` to push the bundle image to your repository.
 
 ## Sample CR
 
