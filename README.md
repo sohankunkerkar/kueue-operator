@@ -31,6 +31,8 @@ on the Kueue release policy.
 
 1. Run `make deploy-ocp` to deploy the operator using the $OPERATOR_IMAGE and $KUEUE_IMAGE for operator and operand, respectively.
 
+1. Run `make undeploy-ocp` to remove operator from ocp cluster
+
 ### Operator Bundle Development
 
 1. Login into podman and have a repository created for the operator bundle.
@@ -42,6 +44,9 @@ on the Kueue release policy.
 1. Run `make podman-bundle-build` to build the `bundle.Dockerfile`.
 
 1. Run `make podman-bundle-push` to push the bundle image to your repository.
+
+1. Run `operator sdk run bundle --namespace OPERATOR_NAMESPACE ${BUNDLE_IMAGE}` 
+to deploy operator to OPERATOR_NAMESPACE
 
 ## Sample CR
 

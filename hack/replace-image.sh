@@ -7,10 +7,11 @@ IMAGE=$3
 find "$DIRECTORY_PATH/" -type f -exec sed -i "s|${REPLACED_IMG}|${IMAGE}|g" {} \;
 
 if grep -rq "${REPLACED_IMG}" "$DIRECTORY_PATH"; then
+    echo ${REPLACED_IMG}
     echo "Failed to replace image references"
     exit 1
 else
-    echo "Image references replaced"
+    echo ${REPLACED_IMG}
 fi
 
 if grep -r "${IMAGE}" "$DIRECTORY_PATH"; then
