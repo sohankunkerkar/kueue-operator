@@ -70,8 +70,8 @@ code-gen: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 generate-clients:
 	GO=GO111MODULE=on GOTOOLCHAIN=go1.23.4 GOFLAGS=-mod=readonly hack/update-codegen.sh
 
-.PHONY: bundle-build
-bundle-build: operator-sdk regen-crd manifests
+.PHONY: bundle-generate
+bundle-generate: operator-sdk regen-crd manifests
 	${OPERATOR_SDK} generate bundle --input-dir deploy/ --version ${OPERATOR_VERSION}
 
 .PHONY: deploy-ocp
@@ -83,21 +83,21 @@ undeploy-ocp:
 	hack/undeploy-ocp.sh
 
 # Below targets require you to login to your registry
-.PHONY: podman-operator-build
-podman-operator-build:
+.PHONY: operator-build
+operator-build:
 	${CONTAINER_TOOL} build -f Dockerfile -t ${OPERATOR_IMAGE}
 
-.PHONY: podman-operator-push
-podman-operator-push:
+.PHONY: operator-push
+operator-push:
 	${CONTAINER_TOOL} push ${OPERATOR_IMAGE}
 
 # Below targets require you to login to your registry
-.PHONY: podman-bundle-build
-podman-bundle-build:
+.PHONY: bundle-build
+bundle-build: bundle-generate
 	${CONTAINER_TOOL} build -f bundle.Dockerfile -t ${BUNDLE_IMAGE}
 
-.PHONY: podman-bundle-push
-podman-bundle-push:
+.PHONY: bundle-push
+bundle-push:
 	${CONTAINER_TOOL} push ${BUNDLE_IMAGE}
 
 clean:
