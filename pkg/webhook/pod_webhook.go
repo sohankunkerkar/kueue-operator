@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,8 +24,13 @@ import (
 
 // These are webhooks that we only want to enable if the integration requests it
 // Otherwise we will remove them from the kueue manifest
-func optionalWebhooks() []string {
+func optionalValidatingWebhooks() []string {
 	return []string{"vdeployment.kb.io", "vpod.kb.io", "vstatefulset.kb.io"}
+}
+
+// optionalMutatingWebhooks are the optional webhooks for pod based integrations
+func optionalMutatingWebhooks() []string {
+	return []string{"mdeployment.kb.io", "mpod.kb.io", "mstatefulset.kb.io"}
 }
 
 func ModifyPodBasedValidatingWebhook(kueueCfg kueue.KueueConfiguration, currentWebhook *admissionregistrationv1.ValidatingWebhookConfiguration) *admissionregistrationv1.ValidatingWebhookConfiguration {
@@ -40,7 +45,7 @@ func ModifyPodBasedValidatingWebhook(kueueCfg kueue.KueueConfiguration, currentW
 	newWebHook.Webhooks = []admissionregistrationv1.ValidatingWebhook{}
 
 	for _, val := range currentWebhook.Webhooks {
-		if !findWebhook(val.Name) {
+		if !findWebhook(val.Name, optionalValidatingWebhooks()) {
 			newWebHook.Webhooks = append(newWebHook.Webhooks, val)
 		}
 	}
@@ -60,15 +65,15 @@ func ModifyPodBasedMutatingWebhook(kueueCfg kueue.KueueConfiguration, currentWeb
 	newWebHook.Webhooks = []admissionregistrationv1.MutatingWebhook{}
 
 	for _, val := range currentWebhook.Webhooks {
-		if !findWebhook(val.Name) {
+		if !findWebhook(val.Name, optionalMutatingWebhooks()) {
 			newWebHook.Webhooks = append(newWebHook.Webhooks, val)
 		}
 	}
 	return newWebHook
 }
 
-func findWebhook(currentWebhookName string) bool {
-	for _, name := range optionalWebhooks() {
+func findWebhook(currentWebhookName string, optionalWebhooks []string) bool {
+	for _, name := range optionalWebhooks {
 		if currentWebhookName == name {
 			return true
 		}

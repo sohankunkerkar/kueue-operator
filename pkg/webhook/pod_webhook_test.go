@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,14 +34,20 @@ func TestModifyPodBasedValidatingWebhook(t *testing.T) {
 		oldWebhook    *admissionregistrationv1.ValidatingWebhookConfiguration
 		newWebhook    *admissionregistrationv1.ValidatingWebhookConfiguration
 	}{
-		"pod integration": {
+		"all kinds of pod integration": {
 			configuration: kueue.KueueConfiguration{
-				Integrations: configapi.Integrations{Frameworks: []string{"pod"}},
+				Integrations: configapi.Integrations{Frameworks: []string{"pod", "deployment", "statefulset"}},
 			},
 			oldWebhook: &admissionregistrationv1.ValidatingWebhookConfiguration{
 				Webhooks: []admissionregistrationv1.ValidatingWebhook{
 					{
 						Name: "vpod.kb.io",
+					},
+					{
+						Name: "vdeployment.kb.io",
+					},
+					{
+						Name: "vstatefulset.kb.io",
 					},
 				},
 			},
@@ -50,10 +56,16 @@ func TestModifyPodBasedValidatingWebhook(t *testing.T) {
 					{
 						Name: "vpod.kb.io",
 					},
+					{
+						Name: "vdeployment.kb.io",
+					},
+					{
+						Name: "vstatefulset.kb.io",
+					},
 				},
 			},
 		},
-		"job integration; drop pod webhook": {
+		"job integration; drop all pod integrations": {
 			configuration: kueue.KueueConfiguration{
 				Integrations: configapi.Integrations{Frameworks: []string{"batch/job"}},
 			},
@@ -64,6 +76,12 @@ func TestModifyPodBasedValidatingWebhook(t *testing.T) {
 					},
 					{
 						Name: "vjob.kb.io",
+					},
+					{
+						Name: "vstatefulset.kb.io",
+					},
+					{
+						Name: "vdeployment.kb.io",
 					},
 				},
 			},
@@ -93,43 +111,61 @@ func TestModifyPodBasedMutatingWebhook(t *testing.T) {
 		oldWebhook    *admissionregistrationv1.MutatingWebhookConfiguration
 		newWebhook    *admissionregistrationv1.MutatingWebhookConfiguration
 	}{
-		"pod integration": {
+		"all kinds of pod integration": {
 			configuration: kueue.KueueConfiguration{
-				Integrations: configapi.Integrations{Frameworks: []string{"pod"}},
+				Integrations: configapi.Integrations{Frameworks: []string{"pod", "deployment", "statefulset"}},
 			},
 			oldWebhook: &admissionregistrationv1.MutatingWebhookConfiguration{
 				Webhooks: []admissionregistrationv1.MutatingWebhook{
 					{
-						Name: "pod",
+						Name: "mpod.kb.io",
+					},
+					{
+						Name: "mdeployment.kb.io",
+					},
+					{
+						Name: "mstatefulset.kb.io",
 					},
 				},
 			},
 			newWebhook: &admissionregistrationv1.MutatingWebhookConfiguration{
 				Webhooks: []admissionregistrationv1.MutatingWebhook{
 					{
-						Name: "pod",
+						Name: "mpod.kb.io",
+					},
+					{
+						Name: "mdeployment.kb.io",
+					},
+					{
+						Name: "mstatefulset.kb.io",
 					},
 				},
 			},
 		},
-		"job integration; drop pod webhook": {
+		"job integration; drop all pod integration webhook": {
 			configuration: kueue.KueueConfiguration{
 				Integrations: configapi.Integrations{Frameworks: []string{"batch/job"}},
 			},
 			oldWebhook: &admissionregistrationv1.MutatingWebhookConfiguration{
 				Webhooks: []admissionregistrationv1.MutatingWebhook{
 					{
-						Name: "vpod.kb.io",
+						Name: "mpod.kb.io",
 					},
 					{
-						Name: "vjob.kb.io",
+						Name: "mdeployment.kb.io",
+					},
+					{
+						Name: "mstatefulset.kb.io",
+					},
+					{
+						Name: "mjob.kb.io",
 					},
 				},
 			},
 			newWebhook: &admissionregistrationv1.MutatingWebhookConfiguration{
 				Webhooks: []admissionregistrationv1.MutatingWebhook{
 					{
-						Name: "vjob.kb.io",
+						Name: "mjob.kb.io",
 					},
 				},
 			},
