@@ -420,6 +420,7 @@ func (c *TargetConfigReconciler) manageMutatingWebhook(kueue *kueuev1alpha1.Kueu
 	for i := range required.Webhooks {
 		required.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
 	}
+	required.ObjectMeta.Annotations = injectCertAnnotation(required.ObjectMeta.Annotations, c.operatorNamespace)
 	return resourceapply.ApplyMutatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, c.resourceCache)
 }
 
@@ -439,6 +440,7 @@ func (c *TargetConfigReconciler) manageValidatingWebhook(kueue *kueuev1alpha1.Ku
 	for i := range required.Webhooks {
 		required.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
 	}
+	required.ObjectMeta.Annotations = injectCertAnnotation(required.ObjectMeta.Annotations, c.operatorNamespace)
 	return resourceapply.ApplyValidatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, c.resourceCache)
 }
 
@@ -647,7 +649,7 @@ func (c *TargetConfigReconciler) manageCustomResources(kueue *kueuev1alpha1.Kueu
 			ownerReference,
 		}
 		controller.EnsureOwnerRef(required, ownerReference)
-
+		required.ObjectMeta.Annotations = injectCertAnnotation(required.GetAnnotations(), c.operatorNamespace)
 		crd, _, err := resourceapply.ApplyCustomResourceDefinitionV1(c.ctx, c.crdClient, c.eventRecorder, required)
 		if err != nil {
 			return nil, err
@@ -822,6 +824,11 @@ func (c *TargetConfigReconciler) eventHandler(item queueItem) cache.ResourceEven
 	}
 }
 
+func injectCertAnnotation(annotation map[string]string, namespace string) map[string]string {
+	newAnnotation := annotation
+	newAnnotation["cert-manager.io/inject-ca-from"] = fmt.Sprintf("%s/webhook-cert", namespace)
+	return newAnnotation
+}
 func isResourceRegistered(discoveryClient discovery.DiscoveryInterface, gvk schema.GroupVersionKind) (bool, error) {
 	apiResourceLists, err := discoveryClient.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
 	if err != nil {
