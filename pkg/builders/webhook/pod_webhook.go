@@ -24,7 +24,7 @@ import (
 
 // These are webhooks that we only want to enable if the integration requests it
 // Otherwise we will remove them from the kueue manifest
-func dangerousWebhooks() []string {
+func optionalWebhooks() []string {
 	return []string{"vdeployment.kb.io", "vpod.kb.io", "vstatefulset.kb.io"}
 }
 
@@ -38,16 +38,9 @@ func ModifyPodBasedValidatingWebhook(kueueCfg kueue.KueueConfiguration, currentW
 	}
 	newWebHook := currentWebhook.DeepCopy()
 	newWebHook.Webhooks = []admissionregistrationv1.ValidatingWebhook{}
-	webhooksToSearchFor := dangerousWebhooks()
 
 	for _, val := range currentWebhook.Webhooks {
-		removeWebhook := false
-		for _, name := range webhooksToSearchFor {
-			if val.Name == name {
-				removeWebhook = true
-			}
-		}
-		if !removeWebhook {
+		if !findWebhook(val.Name) {
 			newWebHook.Webhooks = append(newWebHook.Webhooks, val)
 		}
 	}
@@ -65,19 +58,20 @@ func ModifyPodBasedMutatingWebhook(kueueCfg kueue.KueueConfiguration, currentWeb
 	}
 	newWebHook := currentWebhook.DeepCopy()
 	newWebHook.Webhooks = []admissionregistrationv1.MutatingWebhook{}
-	// Remove dangerous webhooks for now
-	webhooksToSearchFor := dangerousWebhooks()
 
 	for _, val := range currentWebhook.Webhooks {
-		removeWebhook := false
-		for _, name := range webhooksToSearchFor {
-			if val.Name == name {
-				removeWebhook = true
-			}
-		}
-		if !removeWebhook {
+		if !findWebhook(val.Name) {
 			newWebHook.Webhooks = append(newWebHook.Webhooks, val)
 		}
 	}
 	return newWebHook
+}
+
+func findWebhook(currentWebhookName string) bool {
+	for _, name := range optionalWebhooks() {
+		if currentWebhookName == name {
+			return true
+		}
+	}
+	return false
 }
