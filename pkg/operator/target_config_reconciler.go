@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/kueue-operator/bindata"
 	kueuev1alpha1 "github.com/openshift/kueue-operator/pkg/apis/kueueoperator/v1alpha1"
 	"github.com/openshift/kueue-operator/pkg/builders/configmap"
+	"github.com/openshift/kueue-operator/pkg/cert"
 	kueueconfigclient "github.com/openshift/kueue-operator/pkg/generated/clientset/versioned/typed/kueueoperator/v1alpha1"
 	operatorclientinformers "github.com/openshift/kueue-operator/pkg/generated/informers/externalversions/kueueoperator/v1alpha1"
 	"github.com/openshift/kueue-operator/pkg/namespace"
@@ -199,17 +200,6 @@ func (c TargetConfigReconciler) sync() error {
 		specAnnotations["serviceaccounts/kueue-operator"] = resourceVersion
 	}
 
-	if secret, _, err := c.manageSecret(kueue); err != nil {
-		klog.Error("unable to create secret")
-		return err
-	} else {
-		resourceVersion := "0"
-		if secret != nil { // SyncConfigMap can return nil
-			resourceVersion = secret.ObjectMeta.ResourceVersion
-		}
-		specAnnotations["secret/kueue-webhook-server-cert"] = resourceVersion
-	}
-
 	if roleBindings, _, err := c.manageRole(kueue, "assets/kueue-operator/role-leader-election.yaml"); err != nil {
 		klog.Error("unable to create role leader-election")
 		return err
@@ -387,23 +377,6 @@ func (c *TargetConfigReconciler) manageServiceAccount(kueue *kueuev1alpha1.Kueue
 	return resourceapply.ApplyServiceAccount(c.ctx, c.kubeClient.CoreV1(), c.eventRecorder, required)
 }
 
-func (c *TargetConfigReconciler) manageSecret(kueue *kueuev1alpha1.Kueue) (*v1.Secret, bool, error) {
-	required := resourceread.ReadSecretV1OrDie(bindata.MustAsset("assets/kueue-operator/secret.yaml"))
-	required.Namespace = kueue.Namespace
-	ownerReference := metav1.OwnerReference{
-		APIVersion: "operator.openshift.io/v1alpha1",
-		Kind:       "Kueue",
-		Name:       kueue.Name,
-		UID:        kueue.UID,
-	}
-	required.OwnerReferences = []metav1.OwnerReference{
-		ownerReference,
-	}
-	controller.EnsureOwnerRef(required, ownerReference)
-
-	return resourceapply.ApplySecret(c.ctx, c.kubeClient.CoreV1(), c.eventRecorder, required)
-}
-
 func (c *TargetConfigReconciler) manageMutatingWebhook(kueue *kueuev1alpha1.Kueue) (*admissionregistrationv1.MutatingWebhookConfiguration, bool, error) {
 	required := resourceread.ReadMutatingWebhookConfigurationV1OrDie(bindata.MustAsset("assets/kueue-operator/mutatingwebhook.yaml"))
 	ownerReference := metav1.OwnerReference{
@@ -420,7 +393,7 @@ func (c *TargetConfigReconciler) manageMutatingWebhook(kueue *kueuev1alpha1.Kueu
 	for i := range required.Webhooks {
 		required.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
 	}
-	required.ObjectMeta.Annotations = injectCertAnnotation(required.ObjectMeta.Annotations, c.operatorNamespace)
+	required.ObjectMeta.Annotations = cert.InjectCertAnnotation(required.ObjectMeta.Annotations, c.operatorNamespace)
 	return resourceapply.ApplyMutatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, c.resourceCache)
 }
 
@@ -440,7 +413,7 @@ func (c *TargetConfigReconciler) manageValidatingWebhook(kueue *kueuev1alpha1.Ku
 	for i := range required.Webhooks {
 		required.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
 	}
-	required.ObjectMeta.Annotations = injectCertAnnotation(required.ObjectMeta.Annotations, c.operatorNamespace)
+	required.ObjectMeta.Annotations = cert.InjectCertAnnotation(required.ObjectMeta.Annotations, c.operatorNamespace)
 	return resourceapply.ApplyValidatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, c.resourceCache)
 }
 
@@ -637,7 +610,7 @@ func (c *TargetConfigReconciler) manageCustomResources(kueue *kueuev1alpha1.Kueu
 
 	for _, file := range files {
 		assetPath := filepath.Join(crdDir, file)
-		crdName := fmt.Sprintf("clusterroles/%s", file)
+		crdName := fmt.Sprintf("crd/%s", file)
 		required := resourceread.ReadCustomResourceDefinitionV1OrDie(bindata.MustAsset(assetPath))
 		ownerReference := metav1.OwnerReference{
 			APIVersion: "operator.openshift.io/v1alpha1",
@@ -649,7 +622,7 @@ func (c *TargetConfigReconciler) manageCustomResources(kueue *kueuev1alpha1.Kueu
 			ownerReference,
 		}
 		controller.EnsureOwnerRef(required, ownerReference)
-		required.ObjectMeta.Annotations = injectCertAnnotation(required.GetAnnotations(), c.operatorNamespace)
+		required.ObjectMeta.Annotations = cert.InjectCertAnnotation(required.GetAnnotations(), c.operatorNamespace)
 		crd, _, err := resourceapply.ApplyCustomResourceDefinitionV1(c.ctx, c.crdClient, c.eventRecorder, required)
 		if err != nil {
 			return nil, err
@@ -801,7 +774,7 @@ func (c *TargetConfigReconciler) manageCertificateWebhookCR(ctx context.Context,
 				"namespace": c.operatorNamespace,
 			},
 			"spec": map[string]interface{}{
-				"secretName": "webhook-server-cert",
+				"secretName": "kueue-webhook-server-cert",
 				"dnsNames": []interface{}{
 					kueueServiceName,
 				},
@@ -824,11 +797,6 @@ func (c *TargetConfigReconciler) eventHandler(item queueItem) cache.ResourceEven
 	}
 }
 
-func injectCertAnnotation(annotation map[string]string, namespace string) map[string]string {
-	newAnnotation := annotation
-	newAnnotation["cert-manager.io/inject-ca-from"] = fmt.Sprintf("%s/webhook-cert", namespace)
-	return newAnnotation
-}
 func isResourceRegistered(discoveryClient discovery.DiscoveryInterface, gvk schema.GroupVersionKind) (bool, error) {
 	apiResourceLists, err := discoveryClient.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
 	if err != nil {
