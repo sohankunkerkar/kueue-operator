@@ -9,21 +9,21 @@ metadata:
     rbac.kueue.x-k8s.io/batch-admin: "true"
   name: kueue-workload-editor-role
 rules:
-  - apiGroups:
-      - kueue.x-k8s.io
-    resources:
-      - workloads
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - kueue.x-k8s.io
-    resources:
-      - workloads/status
-    verbs:
-      - get
+- apiGroups:
+  - kueue.x-k8s.io
+  resources:
+  - workloads
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kueue.x-k8s.io
+  resources:
+  - workloads/status
+  verbs:
+  - get

@@ -10,21 +10,21 @@ metadata:
     rbac.kueue.x-k8s.io/batch-user: "true"
   name: kueue-rayjob-editor-role
 rules:
-  - apiGroups:
-      - ray.io
-    resources:
-      - rayjobs
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - ray.io
-    resources:
-      - rayjobs/status
-    verbs:
-      - get
+- apiGroups:
+  - ray.io
+  resources:
+  - rayjobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ray.io
+  resources:
+  - rayjobs/status
+  verbs:
+  - get

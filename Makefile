@@ -150,3 +150,18 @@ OPERATOR_SDK = $(shell which operator-sdk)
 endif
 endif
 
+
+# Use this target like make sync-manifests VERSION=<version>
+.PHONY: sync-manifests
+sync-manifests:
+	@echo "Syncing manifests in bindata/assets/kueue-operator using a container"
+	@podman run --rm \
+		-v $(PWD):/workspace:Z \
+		-w /workspace \
+		python:3.11-slim \
+		sh -c " \
+			echo 'Checking for Python dependencies...'; \
+			pip install pyyaml requests > /dev/null; \
+			echo 'Running sync_manifests.py...'; \
+			python3 hack/sync_manifests.py $(VERSION) \
+		"

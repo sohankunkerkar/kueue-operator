@@ -10,21 +10,21 @@ metadata:
     rbac.kueue.x-k8s.io/batch-user: "true"
   name: kueue-pytorchjob-editor-role
 rules:
-  - apiGroups:
-      - kubeflow.org
-    resources:
-      - pytorchjobs
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - kubeflow.org
-    resources:
-      - pytorchjobs/status
-    verbs:
-      - get
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - pytorchjobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - pytorchjobs/status
+  verbs:
+  - get

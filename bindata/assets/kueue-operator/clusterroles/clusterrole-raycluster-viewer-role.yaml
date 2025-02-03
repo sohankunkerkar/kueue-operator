@@ -9,17 +9,17 @@ metadata:
     rbac.kueue.x-k8s.io/batch-admin: "true"
   name: kueue-raycluster-viewer-role
 rules:
-  - apiGroups:
-      - ray.io
-    resources:
-      - rayclusters
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - ray.io
-    resources:
-      - rayclusters/status
-    verbs:
-      - get
+- apiGroups:
+  - ray.io
+  resources:
+  - rayclusters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ray.io
+  resources:
+  - rayclusters/status
+  verbs:
+  - get

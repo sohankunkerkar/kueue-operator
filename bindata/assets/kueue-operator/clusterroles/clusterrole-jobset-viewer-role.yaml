@@ -10,17 +10,17 @@ metadata:
     rbac.kueue.x-k8s.io/batch-user: "true"
   name: kueue-jobset-viewer-role
 rules:
-  - apiGroups:
-      - jobset.x-k8s.io
-    resources:
-      - jobsets
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - jobset.x-k8s.io
-    resources:
-      - jobsets/status
-    verbs:
-      - get
+- apiGroups:
+  - jobset.x-k8s.io
+  resources:
+  - jobsets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - jobset.x-k8s.io
+  resources:
+  - jobsets/status
+  verbs:
+  - get
