@@ -22,16 +22,12 @@ import (
 	kueue "github.com/openshift/kueue-operator/pkg/apis/kueueoperator/v1alpha1"
 )
 
-// These are webhooks that we only want to enable if the integration requests it
-// Otherwise we will remove them from the kueue manifest
-func optionalValidatingWebhooks() []string {
-	return []string{"vdeployment.kb.io", "vpod.kb.io", "vstatefulset.kb.io"}
-}
-
-// optionalMutatingWebhooks are the optional webhooks for pod based integrations
-func optionalMutatingWebhooks() []string {
-	return []string{"mdeployment.kb.io", "mpod.kb.io", "mstatefulset.kb.io"}
-}
+// arrays for the list of webhooks we remove if pod integration is not needed
+// Kueue builds statefulset and deployment off on pod integration
+var (
+	podBasedValidatingWebhooks = []string{"vdeployment.kb.io", "vpod.kb.io", "vstatefulset.kb.io"}
+	podBasedMutatingWebhooks   = []string{"mdeployment.kb.io", "mpod.kb.io", "mstatefulset.kb.io"}
+)
 
 func ModifyPodBasedValidatingWebhook(kueueCfg kueue.KueueConfiguration, currentWebhook *admissionregistrationv1.ValidatingWebhookConfiguration) *admissionregistrationv1.ValidatingWebhookConfiguration {
 	// if there is a pod based webhook, we need to safely enabled it
@@ -45,7 +41,7 @@ func ModifyPodBasedValidatingWebhook(kueueCfg kueue.KueueConfiguration, currentW
 	newWebHook.Webhooks = []admissionregistrationv1.ValidatingWebhook{}
 
 	for _, val := range currentWebhook.Webhooks {
-		if !findWebhook(val.Name, optionalValidatingWebhooks()) {
+		if !findWebhook(val.Name, podBasedValidatingWebhooks) {
 			newWebHook.Webhooks = append(newWebHook.Webhooks, val)
 		}
 	}
@@ -65,7 +61,7 @@ func ModifyPodBasedMutatingWebhook(kueueCfg kueue.KueueConfiguration, currentWeb
 	newWebHook.Webhooks = []admissionregistrationv1.MutatingWebhook{}
 
 	for _, val := range currentWebhook.Webhooks {
-		if !findWebhook(val.Name, optionalMutatingWebhooks()) {
+		if !findWebhook(val.Name, podBasedMutatingWebhooks) {
 			newWebHook.Webhooks = append(newWebHook.Webhooks, val)
 		}
 	}
