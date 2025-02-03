@@ -150,7 +150,6 @@ OPERATOR_SDK = $(shell which operator-sdk)
 endif
 endif
 
-
 # Use this target like make sync-manifests VERSION=<version>
 .PHONY: sync-manifests
 sync-manifests:
