@@ -610,7 +610,7 @@ func (c *TargetConfigReconciler) manageCustomResources(kueue *kueuev1alpha1.Kueu
 
 	for _, file := range files {
 		assetPath := filepath.Join(crdDir, file)
-		crdName := fmt.Sprintf("crd/%s", file)
+		crdName := fmt.Sprintf("crds/%s", file)
 		required := resourceread.ReadCustomResourceDefinitionV1OrDie(bindata.MustAsset(assetPath))
 		ownerReference := metav1.OwnerReference{
 			APIVersion: "operator.openshift.io/v1alpha1",
