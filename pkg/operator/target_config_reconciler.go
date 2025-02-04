@@ -11,12 +11,13 @@ import (
 	openshiftrouteclientset "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/kueue-operator/bindata"
 	kueuev1alpha1 "github.com/openshift/kueue-operator/pkg/apis/kueueoperator/v1alpha1"
-	"github.com/openshift/kueue-operator/pkg/builders/configmap"
 	"github.com/openshift/kueue-operator/pkg/cert"
+	"github.com/openshift/kueue-operator/pkg/configmap"
 	kueueconfigclient "github.com/openshift/kueue-operator/pkg/generated/clientset/versioned/typed/kueueoperator/v1alpha1"
 	operatorclientinformers "github.com/openshift/kueue-operator/pkg/generated/informers/externalversions/kueueoperator/v1alpha1"
 	"github.com/openshift/kueue-operator/pkg/namespace"
 	"github.com/openshift/kueue-operator/pkg/operator/operatorclient"
+	"github.com/openshift/kueue-operator/pkg/webhook"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
@@ -390,8 +391,9 @@ func (c *TargetConfigReconciler) manageMutatingWebhook(kueue *kueuev1alpha1.Kueu
 	}
 	controller.EnsureOwnerRef(required, ownerReference)
 
-	for i := range required.Webhooks {
-		required.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
+	newWebhook := webhook.ModifyPodBasedMutatingWebhook(kueue.Spec.Config, required)
+	for i := range newWebhook.Webhooks {
+		newWebhook.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
 	}
 	required.ObjectMeta.Annotations = cert.InjectCertAnnotation(required.ObjectMeta.Annotations, c.operatorNamespace)
 	return resourceapply.ApplyMutatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, c.resourceCache)
@@ -410,8 +412,9 @@ func (c *TargetConfigReconciler) manageValidatingWebhook(kueue *kueuev1alpha1.Ku
 	}
 	controller.EnsureOwnerRef(required, ownerReference)
 
-	for i := range required.Webhooks {
-		required.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
+	newWebhook := webhook.ModifyPodBasedValidatingWebhook(kueue.Spec.Config, required)
+	for i := range newWebhook.Webhooks {
+		newWebhook.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
 	}
 	required.ObjectMeta.Annotations = cert.InjectCertAnnotation(required.ObjectMeta.Annotations, c.operatorNamespace)
 	return resourceapply.ApplyValidatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, c.resourceCache)
