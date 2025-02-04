@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/kueue-operator/bindata"
 	kueuev1alpha1 "github.com/openshift/kueue-operator/pkg/apis/kueueoperator/v1alpha1"
 	"github.com/openshift/kueue-operator/pkg/builders/configmap"
+	"github.com/openshift/kueue-operator/pkg/cert"
 	kueueconfigclient "github.com/openshift/kueue-operator/pkg/generated/clientset/versioned/typed/kueueoperator/v1alpha1"
 	operatorclientinformers "github.com/openshift/kueue-operator/pkg/generated/informers/externalversions/kueueoperator/v1alpha1"
 	"github.com/openshift/kueue-operator/pkg/namespace"
@@ -32,8 +33,11 @@ import (
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -56,11 +60,13 @@ type TargetConfigReconciler struct {
 	kubeClient                 kubernetes.Interface
 	osrClient                  openshiftrouteclientset.Interface
 	dynamicClient              dynamic.Interface
+	discoveryClient            discovery.DiscoveryInterface
 	eventRecorder              events.Recorder
 	queue                      workqueue.TypedRateLimitingInterface[queueItem]
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces
 	crdClient                  apiextv1.ApiextensionsV1Interface
 	operatorNamespace          string
+	resourceCache              resourceapply.ResourceCache
 }
 
 func NewTargetConfigReconciler(
@@ -72,6 +78,7 @@ func NewTargetConfigReconciler(
 	kubeClient kubernetes.Interface,
 	osrClient openshiftrouteclientset.Interface,
 	dynamicClient dynamic.Interface,
+	discoveryClient discovery.DiscoveryInterface,
 	crdClient apiextv1.ApiextensionsV1Interface,
 	eventRecorder events.Recorder,
 ) (*TargetConfigReconciler, error) {
@@ -82,11 +89,13 @@ func NewTargetConfigReconciler(
 		kubeClient:                 kubeClient,
 		osrClient:                  osrClient,
 		dynamicClient:              dynamicClient,
+		discoveryClient:            discoveryClient,
 		eventRecorder:              eventRecorder,
 		queue:                      workqueue.NewTypedRateLimitingQueueWithConfig(workqueue.DefaultTypedControllerRateLimiter[queueItem](), workqueue.TypedRateLimitingQueueConfig[queueItem]{Name: "TargetConfigReconciler"}),
 		kubeInformersForNamespaces: kubeInformersForNamespaces,
 		crdClient:                  crdClient,
 		operatorNamespace:          namespace.GetNamespace(),
+		resourceCache:              resourceapply.NewResourceCache(),
 	}
 
 	_, err := operatorClientInformer.Informer().AddEventHandler(c.eventHandler(queueItem{kind: "kueue"}))
@@ -121,6 +130,21 @@ func NewTargetConfigReconciler(
 }
 
 func (c TargetConfigReconciler) sync() error {
+
+	found, err := isResourceRegistered(c.discoveryClient, schema.GroupVersionKind{
+		Group:   "cert-manager.io",
+		Version: "v1",
+		Kind:    "Issuer",
+	})
+	if err != nil {
+		klog.Errorf("unable to check cert-manager is installed: %v", err)
+		return err
+	}
+	if !found {
+		klog.Errorf("please make sure that cert-manager is installed")
+		return fmt.Errorf("please make sure that cert-manager is installed on your cluster")
+	}
+
 	kueue, err := c.operatorClient.Kueues(c.operatorNamespace).Get(c.ctx, operatorclient.OperatorConfigName, metav1.GetOptions{})
 	if err != nil {
 		klog.ErrorS(err, "unable to get operator configuration", "namespace", c.operatorNamespace, "kueue", operatorclient.OperatorConfigName)
@@ -129,6 +153,18 @@ func (c TargetConfigReconciler) sync() error {
 
 	specAnnotations := map[string]string{
 		"kueueoperator.operator.openshift.io/cluster": strconv.FormatInt(kueue.Generation, 10),
+	}
+
+	_, _, err = c.manageIssuerCR(c.ctx, kueue)
+	if err != nil {
+		klog.Errorf("unable to manage issuer err: %v", err)
+		return err
+	}
+
+	_, _, err = c.manageCertificateWebhookCR(c.ctx, kueue)
+	if err != nil {
+		klog.Errorf("unable to manage webhook certificate err: %v", err)
+		return err
 	}
 
 	if cm, _, err := c.manageConfigMap(kueue); err != nil {
@@ -162,17 +198,6 @@ func (c TargetConfigReconciler) sync() error {
 			resourceVersion = sa.ObjectMeta.ResourceVersion
 		}
 		specAnnotations["serviceaccounts/kueue-operator"] = resourceVersion
-	}
-
-	if secret, _, err := c.manageSecret(kueue); err != nil {
-		klog.Error("unable to create secret")
-		return err
-	} else {
-		resourceVersion := "0"
-		if secret != nil { // SyncConfigMap can return nil
-			resourceVersion = secret.ObjectMeta.ResourceVersion
-		}
-		specAnnotations["secret/kueue-webhook-server-cert"] = resourceVersion
 	}
 
 	if roleBindings, _, err := c.manageRole(kueue, "assets/kueue-operator/role-leader-election.yaml"); err != nil {
@@ -352,23 +377,6 @@ func (c *TargetConfigReconciler) manageServiceAccount(kueue *kueuev1alpha1.Kueue
 	return resourceapply.ApplyServiceAccount(c.ctx, c.kubeClient.CoreV1(), c.eventRecorder, required)
 }
 
-func (c *TargetConfigReconciler) manageSecret(kueue *kueuev1alpha1.Kueue) (*v1.Secret, bool, error) {
-	required := resourceread.ReadSecretV1OrDie(bindata.MustAsset("assets/kueue-operator/secret.yaml"))
-	required.Namespace = kueue.Namespace
-	ownerReference := metav1.OwnerReference{
-		APIVersion: "operator.openshift.io/v1alpha1",
-		Kind:       "Kueue",
-		Name:       kueue.Name,
-		UID:        kueue.UID,
-	}
-	required.OwnerReferences = []metav1.OwnerReference{
-		ownerReference,
-	}
-	controller.EnsureOwnerRef(required, ownerReference)
-
-	return resourceapply.ApplySecret(c.ctx, c.kubeClient.CoreV1(), c.eventRecorder, required)
-}
-
 func (c *TargetConfigReconciler) manageMutatingWebhook(kueue *kueuev1alpha1.Kueue) (*admissionregistrationv1.MutatingWebhookConfiguration, bool, error) {
 	required := resourceread.ReadMutatingWebhookConfigurationV1OrDie(bindata.MustAsset("assets/kueue-operator/mutatingwebhook.yaml"))
 	ownerReference := metav1.OwnerReference{
@@ -385,7 +393,8 @@ func (c *TargetConfigReconciler) manageMutatingWebhook(kueue *kueuev1alpha1.Kueu
 	for i := range required.Webhooks {
 		required.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
 	}
-	return resourceapply.ApplyMutatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, resourceapply.NewResourceCache())
+	required.ObjectMeta.Annotations = cert.InjectCertAnnotation(required.ObjectMeta.Annotations, c.operatorNamespace)
+	return resourceapply.ApplyMutatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, c.resourceCache)
 }
 
 func (c *TargetConfigReconciler) manageValidatingWebhook(kueue *kueuev1alpha1.Kueue) (*admissionregistrationv1.ValidatingWebhookConfiguration, bool, error) {
@@ -404,7 +413,8 @@ func (c *TargetConfigReconciler) manageValidatingWebhook(kueue *kueuev1alpha1.Ku
 	for i := range required.Webhooks {
 		required.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
 	}
-	return resourceapply.ApplyValidatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, resourceapply.NewResourceCache())
+	required.ObjectMeta.Annotations = cert.InjectCertAnnotation(required.ObjectMeta.Annotations, c.operatorNamespace)
+	return resourceapply.ApplyValidatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, required, c.resourceCache)
 }
 
 func (c *TargetConfigReconciler) manageRoleBindings(kueue *kueuev1alpha1.Kueue, assetPath string) (*rbacv1.RoleBinding, bool, error) {
@@ -600,7 +610,7 @@ func (c *TargetConfigReconciler) manageCustomResources(kueue *kueuev1alpha1.Kueu
 
 	for _, file := range files {
 		assetPath := filepath.Join(crdDir, file)
-		crdName := fmt.Sprintf("clusterroles/%s", file)
+		crdName := fmt.Sprintf("crds/%s", file)
 		required := resourceread.ReadCustomResourceDefinitionV1OrDie(bindata.MustAsset(assetPath))
 		ownerReference := metav1.OwnerReference{
 			APIVersion: "operator.openshift.io/v1alpha1",
@@ -612,7 +622,7 @@ func (c *TargetConfigReconciler) manageCustomResources(kueue *kueuev1alpha1.Kueu
 			ownerReference,
 		}
 		controller.EnsureOwnerRef(required, ownerReference)
-
+		required.ObjectMeta.Annotations = cert.InjectCertAnnotation(required.GetAnnotations(), c.operatorNamespace)
 		crd, _, err := resourceapply.ApplyCustomResourceDefinitionV1(c.ctx, c.crdClient, c.eventRecorder, required)
 		if err != nil {
 			return nil, err
@@ -707,6 +717,77 @@ func (c *TargetConfigReconciler) processNextWorkItem() bool {
 	return true
 }
 
+func (c *TargetConfigReconciler) manageIssuerCR(ctx context.Context, kueue *kueuev1alpha1.Kueue) (*unstructured.Unstructured, bool, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    "cert-manager.io",
+		Version:  "v1",
+		Resource: "issuers",
+	}
+
+	required := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "cert-manager.io/v1",
+			"kind":       "Issuer",
+			"metadata": map[string]interface{}{
+				"ownerReferences": []interface{}{
+					map[string]interface{}{
+						"apiVersion": "operator.openshift.io/v1alpha1",
+						"kind":       "Kueue",
+						"name":       kueue.Name,
+						"uid":        string(kueue.UID),
+					},
+				},
+				"name":      "selfsigned",
+				"namespace": c.operatorNamespace,
+			},
+			"spec": map[string]interface{}{
+				"selfSigned": map[string]interface{}{},
+			},
+		},
+	}
+
+	return resourceapply.ApplyUnstructuredResourceImproved(ctx, c.dynamicClient, c.eventRecorder, required, c.resourceCache, gvr, nil, nil)
+}
+
+func (c *TargetConfigReconciler) manageCertificateWebhookCR(ctx context.Context, kueue *kueuev1alpha1.Kueue) (*unstructured.Unstructured, bool, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    "cert-manager.io",
+		Version:  "v1",
+		Resource: "certificates",
+	}
+
+	kueueServiceName := fmt.Sprintf("kueue-webhook-service.%s.svc", c.operatorNamespace)
+	required := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "cert-manager.io/v1",
+			"kind":       "Certificate",
+			"metadata": map[string]interface{}{
+				"ownerReferences": []interface{}{
+					map[string]interface{}{
+						"apiVersion": "operator.openshift.io/v1alpha1",
+						"kind":       "Kueue",
+						"name":       kueue.Name,
+						"uid":        string(kueue.UID),
+					},
+				},
+				"name":      "webhook-cert",
+				"namespace": c.operatorNamespace,
+			},
+			"spec": map[string]interface{}{
+				"secretName": "kueue-webhook-server-cert",
+				"dnsNames": []interface{}{
+					kueueServiceName,
+				},
+				"issuerRef": map[string]interface{}{
+					"name": "selfsigned",
+				},
+			},
+		},
+	}
+
+	return resourceapply.ApplyUnstructuredResourceImproved(ctx, c.dynamicClient, c.eventRecorder, required, c.resourceCache, gvr, nil, nil)
+}
+
 // eventHandler queues the operator to check spec and status
 func (c *TargetConfigReconciler) eventHandler(item queueItem) cache.ResourceEventHandler {
 	return cache.ResourceEventHandlerFuncs{
@@ -714,4 +795,20 @@ func (c *TargetConfigReconciler) eventHandler(item queueItem) cache.ResourceEven
 		UpdateFunc: func(old, new interface{}) { c.queue.Add(item) },
 		DeleteFunc: func(obj interface{}) { c.queue.Add(item) },
 	}
+}
+
+func isResourceRegistered(discoveryClient discovery.DiscoveryInterface, gvk schema.GroupVersionKind) (bool, error) {
+	apiResourceLists, err := discoveryClient.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	for _, apiResource := range apiResourceLists.APIResources {
+		if apiResource.Kind == gvk.Kind {
+			return true, nil
+		}
+	}
+	return false, nil
 }

@@ -82,6 +82,10 @@ deploy-ocp:
 undeploy-ocp:
 	hack/undeploy-ocp.sh
 
+.PHONY: deploy-cert-manager-ocp
+deploy-cert-manager-ocp:
+	oc apply -f hack/manifests/cert-manager-ocp.yaml
+
 # Below targets require you to login to your registry
 .PHONY: operator-build
 operator-build:
