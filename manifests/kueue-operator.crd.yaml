@@ -4,13 +4,13 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
-  name: kueue.operator.openshift.io
+  name: kueues.operator.openshift.io
 spec:
   group: operator.openshift.io
   names:
     kind: Kueue
     listKind: KueueList
-    plural: kueue
+    plural: kueues
     singular: kueue
   scope: Cluster
   versions:
@@ -20,7 +20,6 @@ spec:
         description: |-
           Kueue is the CRD to represent the Kueue operator
           This CRD defines the configuration that the Kueue
-          Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
         properties:
           apiVersion:
             description: |-
