@@ -34,7 +34,11 @@ type CohortSpec struct {
 	// Cohort, including ClusterQueues, until the cycle is
 	// removed.  We prevent further admission while the cycle
 	// exists.
-	Parent kueuebeta.CohortReference `json:"parent,omitempty"`
+	//
+	//+kubebuilder:validation:MaxLength=253
+	//+kubebuilder:validation:Pattern="^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
+	//
+	Parent string `json:"parent,omitempty"`
 
 	// ResourceGroups describes groupings of Resources and
 	// Flavors.  Each ResourceGroup defines a list of Resources
@@ -56,34 +60,19 @@ type CohortSpec struct {
 	//+listType=atomic
 	//+kubebuilder:validation:MaxItems=16
 	ResourceGroups []kueuebeta.ResourceGroup `json:"resourceGroups,omitempty"`
-
-	// fairSharing defines the properties of the Cohort when
-	// participating in FairSharing. The values are only relevant
-	// if FairSharing is enabled in the Kueue configuration.
-	// +optional
-	FairSharing *kueuebeta.FairSharing `json:"fairSharing,omitempty"`
-}
-
-type CohortStatus struct {
-	// +optional
-	FairSharing *kueuebeta.FairSharingStatus `json:"fairSharing,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:resource:scope=Cluster
-//+kubebuilder:subresource:status
 
-// Cohort defines the Cohorts API.
-//
-// Hierarchical Cohorts (any Cohort which has a parent) are compatible
-// with Fair Sharing as of v0.11. Using these features together in
-// V0.9 and V0.10 is unsupported, and results in undefined behavior.
+// Cohort is the Schema for the cohorts API. Using Hierarchical
+// Cohorts (any Cohort which has a parent) with Fair Sharing
+// results in undefined behavior in 0.9
 type Cohort struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CohortSpec   `json:"spec,omitempty"`
-	Status CohortStatus `json:"status,omitempty"`
+	Spec CohortSpec `json:"spec,omitempty"`
 }
 
 //+kubebuilder:object:root=true

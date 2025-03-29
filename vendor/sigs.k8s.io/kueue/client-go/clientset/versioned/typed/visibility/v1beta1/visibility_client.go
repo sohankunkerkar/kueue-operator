@@ -18,11 +18,11 @@ limitations under the License.
 package v1beta1
 
 import (
-	http "net/http"
+	"net/http"
 
 	rest "k8s.io/client-go/rest"
-	visibilityv1beta1 "sigs.k8s.io/kueue/apis/visibility/v1beta1"
-	scheme "sigs.k8s.io/kueue/client-go/clientset/versioned/scheme"
+	v1beta1 "sigs.k8s.io/kueue/apis/visibility/v1beta1"
+	"sigs.k8s.io/kueue/client-go/clientset/versioned/scheme"
 )
 
 type VisibilityV1beta1Interface interface {
@@ -89,10 +89,10 @@ func New(c rest.Interface) *VisibilityV1beta1Client {
 }
 
 func setConfigDefaults(config *rest.Config) error {
-	gv := visibilityv1beta1.SchemeGroupVersion
+	gv := v1beta1.SchemeGroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = rest.CodecFactoryForGeneratedClient(scheme.Scheme, scheme.Codecs).WithoutConversion()
+	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 
 	if config.UserAgent == "" {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()

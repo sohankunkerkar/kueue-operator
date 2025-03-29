@@ -19,14 +19,13 @@ package v1beta1
 
 import (
 	v1 "k8s.io/api/core/v1"
-	kueuev1beta1 "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 )
 
 // PodSetRequestApplyConfiguration represents a declarative configuration of the PodSetRequest type for use
 // with apply.
 type PodSetRequestApplyConfiguration struct {
-	Name      *kueuev1beta1.PodSetReference `json:"name,omitempty"`
-	Resources *v1.ResourceList              `json:"resources,omitempty"`
+	Name      *string          `json:"name,omitempty"`
+	Resources *v1.ResourceList `json:"resources,omitempty"`
 }
 
 // PodSetRequestApplyConfiguration constructs a declarative configuration of the PodSetRequest type for use with
@@ -38,7 +37,7 @@ func PodSetRequest() *PodSetRequestApplyConfiguration {
 // WithName sets the Name field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Name field is set to the value of the last call.
-func (b *PodSetRequestApplyConfiguration) WithName(value kueuev1beta1.PodSetReference) *PodSetRequestApplyConfiguration {
+func (b *PodSetRequestApplyConfiguration) WithName(value string) *PodSetRequestApplyConfiguration {
 	b.Name = &value
 	return b
 }

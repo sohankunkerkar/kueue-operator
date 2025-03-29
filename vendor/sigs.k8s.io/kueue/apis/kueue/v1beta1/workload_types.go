@@ -1,5 +1,5 @@
 /*
-Copyright The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"strings"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -104,14 +102,6 @@ type PodSetTopologyRequest struct {
 	// +optional
 	Preferred *string `json:"preferred,omitempty"`
 
-	// unconstrained indicates that Kueue has the freedom to schedule the PodSet within
-	// the entire available capacity, without constraints on the compactness of the placement.
-	// This is indicated by the `kueue.x-k8s.io/podset-unconstrained-topology` PodSet annotation.
-	//
-	// +optional
-	// +kubebuilder:validation:Type=boolean
-	Unconstrained *bool `json:"unconstrained,omitempty"`
-
 	// PodIndexLabel indicates the name of the label indexing the pods.
 	// For example, in the context of
 	// - kubernetes job this is: kubernetes.io/job-completion-index
@@ -139,19 +129,12 @@ type Admission struct {
 	PodSetAssignments []PodSetAssignment `json:"podSetAssignments"`
 }
 
-// PodSetReference is the name of a PodSet.
-// +kubebuilder:validation:MaxLength=63
-// +kubebuilder:validation:Pattern="^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-type PodSetReference string
-
-func NewPodSetReference(name string) PodSetReference {
-	return PodSetReference(strings.ToLower(name))
-}
-
 type PodSetAssignment struct {
 	// Name is the name of the podSet. It should match one of the names in .spec.podSets.
 	// +kubebuilder:default=main
-	Name PodSetReference `json:"name"`
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern="^(?i)[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+	Name string `json:"name"`
 
 	// Flavors are the flavors assigned to the workload for each resource.
 	Flavors map[corev1.ResourceName]ResourceFlavorReference `json:"flavors,omitempty"`
@@ -262,7 +245,9 @@ type TopologyDomainAssignment struct {
 type PodSet struct {
 	// name is the PodSet name.
 	// +kubebuilder:default=main
-	Name PodSetReference `json:"name,omitempty"`
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern="^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+	Name string `json:"name,omitempty"`
 
 	// template is the Pod template.
 	//
@@ -425,7 +410,7 @@ type PodSetUpdate struct {
 	// Name of the PodSet to modify. Should match to one of the Workload's PodSets.
 	// +required
 	// +kubebuilder:validation:Required
-	Name PodSetReference `json:"name"`
+	Name string `json:"name"`
 
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
@@ -448,7 +433,7 @@ type PodSetUpdate struct {
 
 type ReclaimablePod struct {
 	// name is the PodSet name.
-	Name PodSetReference `json:"name"`
+	Name string `json:"name"`
 
 	// count is the number of pods for which the requested resources are no longer needed.
 	// +kubebuilder:validation:Minimum=0
@@ -460,7 +445,9 @@ type PodSetRequest struct {
 	// +kubebuilder:default=main
 	// +required
 	// +kubebuilder:validation:Required
-	Name PodSetReference `json:"name"`
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern="^(?i)[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+	Name string `json:"name"`
 
 	// resources is the total resources all the pods in the podset need to run.
 	//
@@ -524,7 +511,7 @@ const (
 	InCohortReclamationReason string = "InCohortReclamation"
 
 	// InCohortFairSharingReason indicates the Workload was preempted due to
-	// Fair Sharing within the cohort.
+	// fair sharing within the cohort.
 	InCohortFairSharingReason string = "InCohortFairSharing"
 
 	// InCohortReclaimWhileBorrowingReason indicates the Workload was preempted
@@ -591,21 +578,6 @@ const (
 	// WorkloadMaximumExecutionTimeExceeded indicates that the workload exceeded its
 	// maximum execution time.
 	WorkloadMaximumExecutionTimeExceeded = "MaximumExecutionTimeExceeded"
-
-	// WorkloadWaitForStart indicates the reason for PodsReady=False condition
-	// when the pods have not been ready since admission, or the workload is not admitted.
-	WorkloadWaitForStart = "WaitForStart"
-
-	// WorkloadWaitForRecovery indicates the reason for the PodsReady=False condition
-	// when the Pods were ready since the workload admission, but some pod has failed,
-	// and workload waits for recovering.
-	WorkloadWaitForRecovery = "WaitForRecovery"
-
-	// WorkloadStarted indicates that all Pods are ready and the Workload has successfully started
-	WorkloadStarted = "Started"
-
-	// WorkloadRecovered indicates that after at least one Pod has failed, the Workload has recovered and is running
-	WorkloadRecovered = "Recovered"
 )
 
 const (
@@ -614,6 +586,9 @@ const (
 
 	// WorkloadFinishedReasonFailed indicates that the workload's job finished with an error.
 	WorkloadFinishedReasonFailed = "Failed"
+
+	// WorkloadFinishedReasonAdmissionChecksRejected indicates that the workload was rejected by admission checks.
+	WorkloadFinishedReasonAdmissionChecksRejected = "AdmissionChecksRejected"
 
 	// WorkloadFinishedReasonOutOfSync indicates that the prebuilt workload is not in sync with its parent job.
 	WorkloadFinishedReasonOutOfSync = "OutOfSync"

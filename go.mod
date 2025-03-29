@@ -1,8 +1,8 @@
 module github.com/openshift/kueue-operator
 
-go 1.24.0
+go 1.23.0
 
-toolchain go1.24.1
+toolchain go1.23.4
 
 replace sigs.k8s.io/controller-tools => github.com/openshift/controller-tools v0.12.1-0.20250218152928-be0dbe446d10
 
@@ -27,7 +27,7 @@ require (
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	sigs.k8s.io/controller-runtime v0.20.3
 	sigs.k8s.io/controller-tools v0.4.1
-	sigs.k8s.io/kueue v0.11.2
+	sigs.k8s.io/kueue v0.10.2
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0
 	sigs.k8s.io/yaml v1.4.0
 )

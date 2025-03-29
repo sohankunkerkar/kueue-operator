@@ -46,7 +46,7 @@ func MultiKueueCluster(name string) *MultiKueueClusterApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *MultiKueueClusterApplyConfiguration) WithKind(value string) *MultiKueueClusterApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -54,7 +54,7 @@ func (b *MultiKueueClusterApplyConfiguration) WithKind(value string) *MultiKueue
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *MultiKueueClusterApplyConfiguration) WithAPIVersion(value string) *MultiKueueClusterApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -63,7 +63,7 @@ func (b *MultiKueueClusterApplyConfiguration) WithAPIVersion(value string) *Mult
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *MultiKueueClusterApplyConfiguration) WithName(value string) *MultiKueueClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -72,7 +72,7 @@ func (b *MultiKueueClusterApplyConfiguration) WithName(value string) *MultiKueue
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *MultiKueueClusterApplyConfiguration) WithGenerateName(value string) *MultiKueueClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -81,7 +81,7 @@ func (b *MultiKueueClusterApplyConfiguration) WithGenerateName(value string) *Mu
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *MultiKueueClusterApplyConfiguration) WithNamespace(value string) *MultiKueueClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -90,7 +90,7 @@ func (b *MultiKueueClusterApplyConfiguration) WithNamespace(value string) *Multi
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *MultiKueueClusterApplyConfiguration) WithUID(value types.UID) *MultiKueueClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -99,7 +99,7 @@ func (b *MultiKueueClusterApplyConfiguration) WithUID(value types.UID) *MultiKue
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *MultiKueueClusterApplyConfiguration) WithResourceVersion(value string) *MultiKueueClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -108,7 +108,7 @@ func (b *MultiKueueClusterApplyConfiguration) WithResourceVersion(value string) 
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *MultiKueueClusterApplyConfiguration) WithGeneration(value int64) *MultiKueueClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
@@ -117,7 +117,7 @@ func (b *MultiKueueClusterApplyConfiguration) WithGeneration(value int64) *Multi
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
 func (b *MultiKueueClusterApplyConfiguration) WithCreationTimestamp(value metav1.Time) *MultiKueueClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
@@ -126,7 +126,7 @@ func (b *MultiKueueClusterApplyConfiguration) WithCreationTimestamp(value metav1
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
 func (b *MultiKueueClusterApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *MultiKueueClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -135,7 +135,7 @@ func (b *MultiKueueClusterApplyConfiguration) WithDeletionTimestamp(value metav1
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *MultiKueueClusterApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *MultiKueueClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -145,11 +145,11 @@ func (b *MultiKueueClusterApplyConfiguration) WithDeletionGracePeriodSeconds(val
 // overwriting an existing map entries in Labels field with the same key.
 func (b *MultiKueueClusterApplyConfiguration) WithLabels(entries map[string]string) *MultiKueueClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -160,11 +160,11 @@ func (b *MultiKueueClusterApplyConfiguration) WithLabels(entries map[string]stri
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *MultiKueueClusterApplyConfiguration) WithAnnotations(entries map[string]string) *MultiKueueClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -178,7 +178,7 @@ func (b *MultiKueueClusterApplyConfiguration) WithOwnerReferences(values ...*v1.
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -189,7 +189,7 @@ func (b *MultiKueueClusterApplyConfiguration) WithOwnerReferences(values ...*v1.
 func (b *MultiKueueClusterApplyConfiguration) WithFinalizers(values ...string) *MultiKueueClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
@@ -219,5 +219,5 @@ func (b *MultiKueueClusterApplyConfiguration) WithStatus(value *MultiKueueCluste
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *MultiKueueClusterApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

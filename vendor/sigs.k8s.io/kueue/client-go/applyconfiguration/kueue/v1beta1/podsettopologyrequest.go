@@ -22,7 +22,6 @@ package v1beta1
 type PodSetTopologyRequestApplyConfiguration struct {
 	Required           *string `json:"required,omitempty"`
 	Preferred          *string `json:"preferred,omitempty"`
-	Unconstrained      *bool   `json:"unconstrained,omitempty"`
 	PodIndexLabel      *string `json:"podIndexLabel,omitempty"`
 	SubGroupIndexLabel *string `json:"subGroupIndexLabel,omitempty"`
 	SubGroupCount      *int32  `json:"subGroupCount,omitempty"`
@@ -47,14 +46,6 @@ func (b *PodSetTopologyRequestApplyConfiguration) WithRequired(value string) *Po
 // If called multiple times, the Preferred field is set to the value of the last call.
 func (b *PodSetTopologyRequestApplyConfiguration) WithPreferred(value string) *PodSetTopologyRequestApplyConfiguration {
 	b.Preferred = &value
-	return b
-}
-
-// WithUnconstrained sets the Unconstrained field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Unconstrained field is set to the value of the last call.
-func (b *PodSetTopologyRequestApplyConfiguration) WithUnconstrained(value bool) *PodSetTopologyRequestApplyConfiguration {
-	b.Unconstrained = &value
 	return b
 }
 
