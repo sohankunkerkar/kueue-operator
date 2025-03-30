@@ -645,7 +645,7 @@ func (c *TargetConfigReconciler) buildAndApplyConfigMap(oldCfgMap *v1.ConfigMap,
 
 func (c *TargetConfigReconciler) manageServiceAccount(kueue *kueuev1alpha1.Kueue, ownerReference metav1.OwnerReference) (*v1.ServiceAccount, bool, error) {
 	required := resourceread.ReadServiceAccountV1OrDie(bindata.MustAsset("assets/kueue-operator/serviceaccount.yaml"))
-	required.Namespace = kueue.Namespace
+	required.Namespace = c.operatorNamespace
 	required.OwnerReferences = []metav1.OwnerReference{
 		ownerReference,
 	}
@@ -662,7 +662,7 @@ func (c *TargetConfigReconciler) manageMutatingWebhook(kueue *kueuev1alpha1.Kueu
 
 	newWebhook := webhook.ModifyPodBasedMutatingWebhook(kueue.Spec.Config, required)
 	for i := range newWebhook.Webhooks {
-		newWebhook.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
+		newWebhook.Webhooks[i].ClientConfig.Service.Namespace = c.operatorNamespace
 	}
 	newWebhook.ObjectMeta.Annotations = cert.InjectCertAnnotation(newWebhook.ObjectMeta.Annotations, c.operatorNamespace)
 	return resourceapply.ApplyMutatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, newWebhook, c.resourceCache)
@@ -677,7 +677,7 @@ func (c *TargetConfigReconciler) manageValidatingWebhook(kueue *kueuev1alpha1.Ku
 
 	newWebhook := webhook.ModifyPodBasedValidatingWebhook(kueue.Spec.Config, required)
 	for i := range newWebhook.Webhooks {
-		newWebhook.Webhooks[i].ClientConfig.Service.Namespace = kueue.Namespace
+		newWebhook.Webhooks[i].ClientConfig.Service.Namespace = c.operatorNamespace
 	}
 	newWebhook.ObjectMeta.Annotations = cert.InjectCertAnnotation(newWebhook.ObjectMeta.Annotations, c.operatorNamespace)
 	return resourceapply.ApplyValidatingWebhookConfigurationImproved(c.ctx, c.kubeClient.AdmissionregistrationV1(), c.eventRecorder, newWebhook, c.resourceCache)
@@ -689,13 +689,13 @@ func (c *TargetConfigReconciler) manageRoleBindings(kueue *kueuev1alpha1.Kueue, 
 		ownerReference,
 	}
 
-	required.Namespace = kueue.Namespace
+	required.Namespace = c.operatorNamespace
 	if setServiceAccountToOperatorNamespace {
 		for i := range required.Subjects {
 			if required.Subjects[i].Kind != "ServiceAccount" {
 				continue
 			}
-			required.Subjects[i].Namespace = kueue.Namespace
+			required.Subjects[i].Namespace = c.operatorNamespace
 		}
 	}
 	return resourceapply.ApplyRoleBinding(c.ctx, c.kubeClient.RbacV1(), c.eventRecorder, required)
@@ -706,9 +706,9 @@ func (c *TargetConfigReconciler) manageClusterRoleBindings(kueue *kueuev1alpha1.
 	required.OwnerReferences = []metav1.OwnerReference{
 		ownerReference,
 	}
-	required.Namespace = kueue.Namespace
+	required.Namespace = c.operatorNamespace
 	for i := range required.Subjects {
-		required.Subjects[i].Namespace = kueue.Namespace
+		required.Subjects[i].Namespace = c.operatorNamespace
 	}
 	return resourceapply.ApplyClusterRoleBinding(c.ctx, c.kubeClient.RbacV1(), c.eventRecorder, required)
 }
@@ -718,7 +718,7 @@ func (c *TargetConfigReconciler) manageRole(kueue *kueuev1alpha1.Kueue, assetPat
 	required.OwnerReferences = []metav1.OwnerReference{
 		ownerReference,
 	}
-	required.Namespace = kueue.Namespace
+	required.Namespace = c.operatorNamespace
 	return resourceapply.ApplyRole(c.ctx, c.kubeClient.RbacV1(), c.eventRecorder, required)
 }
 
@@ -727,7 +727,7 @@ func (c *TargetConfigReconciler) manageService(kueue *kueuev1alpha1.Kueue, asset
 	required.OwnerReferences = []metav1.OwnerReference{
 		ownerReference,
 	}
-	required.Namespace = kueue.Namespace
+	required.Namespace = c.operatorNamespace
 	return resourceapply.ApplyService(c.ctx, c.kubeClient.CoreV1(), c.eventRecorder, required)
 }
 
@@ -766,7 +766,7 @@ func (c *TargetConfigReconciler) manageOpenshiftClusterRolesBindingForKueue(kueu
 			{
 				Kind:      "ServiceAccount",
 				Name:      "kueue-controller-manager",
-				Namespace: kueue.Namespace,
+				Namespace: c.operatorNamespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
