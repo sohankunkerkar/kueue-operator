@@ -848,7 +848,7 @@ func (c *TargetConfigReconciler) manageCustomResources(ownerReference metav1.Own
 func (c *TargetConfigReconciler) manageDeployment(kueueoperator *kueuev1alpha1.Kueue, specAnnotations map[string]string, ownerReference metav1.OwnerReference) (*appsv1.Deployment, bool, error) {
 	required := resourceread.ReadDeploymentV1OrDie(bindata.MustAsset("assets/kueue-operator/deployment.yaml"))
 	required.Name = operatorclient.OperandName
-	required.Namespace = kueueoperator.Namespace
+	required.Namespace = c.operatorNamespace
 	required.OwnerReferences = []metav1.OwnerReference{
 		ownerReference,
 	}
