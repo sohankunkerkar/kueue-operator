@@ -53,7 +53,7 @@ health:
   healthProbeBindAddress: :8081
 integrations:
   frameworks:
-  - batchv1/job
+  - batch/job
 internalCertManagement:
   enable: false
 kind: Configuration

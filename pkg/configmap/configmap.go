@@ -60,7 +60,7 @@ func buildFrameworkList(kueuelist []kueue.KueueIntegration) []string {
 	// This does not fit our api review so we are converted before building it into
 	// the configmap.
 	conversionMap := map[string]string{}
-	conversionMap[string(kueue.KueueIntegrationBatchJob)] = "batchv1/job"
+	conversionMap[string(kueue.KueueIntegrationBatchJob)] = "batch/job"
 	conversionMap[string(kueue.KueueIntegrationMPIJob)] = "kubeflow.org/mpijob"
 	conversionMap[string(kueue.KueueIntegrationRayJob)] = "ray.io/rayjob"
 	conversionMap[string(kueue.KueueIntegrationRayCluster)] = "ray.io/raycluster"
