@@ -136,6 +136,10 @@ func buildFairSharing(preemption kueue.Preemption) *configapi.FairSharing {
 	}
 }
 
+func buildResources(resources *configapi.Resources) *configapi.Resources {
+	return resources
+}
+
 func defaultKueueConfigurationTemplate(kueueCfg kueue.KueueConfiguration) *configapi.Configuration {
 	return &configapi.Configuration{
 		TypeMeta: v1.TypeMeta{
@@ -193,6 +197,7 @@ func defaultKueueConfigurationTemplate(kueueCfg kueue.KueueConfiguration) *confi
 		ManageJobsWithoutQueueName: buildManagedJobsWithoutQueueName(kueueCfg.WorkloadManagement),
 		WaitForPodsReady:           buildWaitForPodsReady(kueueCfg.GangScheduling),
 		FairSharing:                buildFairSharing(kueueCfg.Preemption),
+		Resources:                  buildResources(kueueCfg.Resources),
 	}
 }
 

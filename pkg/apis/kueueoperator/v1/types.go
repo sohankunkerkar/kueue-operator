@@ -3,6 +3,7 @@ package v1
 import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	configapi "sigs.k8s.io/kueue/apis/config/v1beta1"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -70,6 +71,11 @@ type KueueConfiguration struct {
 	// This default could change over time.
 	// +optional
 	Preemption Preemption `json:"preemption"`
+	// resources controls how Kueue manages resource transformations.
+	// Resource transformations allow converting PodSpec resources into Workload resource requests.
+	// This field is optional.
+	// +optional
+	Resources *configapi.Resources `json:"resources,omitempty"`
 }
 
 // KueueStatus defines the observed state of Kueue
